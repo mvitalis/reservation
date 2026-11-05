@@ -1,6 +1,6 @@
 require('dotenv').config();
 const express = require('express');
-const cors = require('cors');
+const cors = express ? require('cors') : null; // o import normal de cors
 const helmet = require('helmet');
 const supabase = require('./db');
 const { z } = require('zod');
@@ -10,8 +10,25 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const app = express();
 
 app.use(helmet());
-// Configured CORS to accept React running on port 5173
-app.use(cors({ origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173' }));
+
+// CORS Dinámico compatible con desarrollo local y producción en Vercel
+const allowedOrigins = [
+  'http://localhost:5173',
+  process.env.CLIENT_ORIGIN
+].filter(Boolean);
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Permitir solicitudes sin origen (como Postman o apps móviles) o si están permitidas
+    if (!origin || allowedOrigins.indexOf(origin) !== -1 || origin.endsWith('.vercel.app')) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
+
 app.use(express.json());
 
 // 1. Fetch Services for a Business
@@ -84,7 +101,7 @@ app.post('/api/bookings', async (req, res) => {
           booking_end: end.toISOString()
         }
       ])
-      .select('*, services(name, duration_minutes, price)') // Joined services details
+      .select('*, services(name, duration_minutes, price)')
       .single();
 
     if (insertErr) {
@@ -157,12 +174,10 @@ app.get('/api/admin/bookings', async (req, res) => {
       .eq('business_id', businessId)
       .order('booking_start', { ascending: true });
 
-    // Filter by specific status if passed (e.g. 'confirmed', 'cancelled')
     if (status && status !== 'all') {
       query = query.eq('status', status);
     }
 
-    // Filter by date if passed
     if (date) {
       const startOfDay = new Date(date);
       startOfDay.setHours(0, 0, 0, 0);
@@ -185,7 +200,7 @@ app.get('/api/admin/bookings', async (req, res) => {
   }
 });
 
-// 4. Update Booking Status (e.g., Cancel, Complete)
+// 4. Update Booking Status
 const updateStatusSchema = z.object({
   status: z.enum(['confirmed', 'completed', 'cancelled', 'no-show'])
 });
@@ -303,5 +318,10 @@ app.delete('/api/admin/services/:id', async (req, res) => {
   }
 });
 
+// Inicio del servidor adaptado para entorno local y Vercel
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
+}
+
+module.exports = app;
