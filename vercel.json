@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "builds": [
+    { "src": "client/reservation-frontend/package.json", "use": "@vercel/static-build" },
+    { "src": "server/index.js", "use": "@vercel/node" }
+  ],
+  "routes": [
+    { "src": "/api/(.*)", "destination": "/server/index.js" },
+    { "src": "/(.*)", "destination": "/client/reservation-frontend/dist/$1" }
+  ]
+}
