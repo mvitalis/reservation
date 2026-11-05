@@ -1,11 +1,18 @@
 {
   "version": 2,
   "builds": [
-    { "src": "client/reservation-frontend/package.json", "use": "@vercel/static-build" },
-    { "src": "server/index.js", "use": "@vercel/node" }
+    {
+      "src": "client/reservation-frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": { "distDir": "dist" }
+    },
+    {
+      "src": "server.js",
+      "use": "@vercel/node"
+    }
   ],
   "routes": [
-    { "src": "/api/(.*)", "destination": "/server/index.js" },
-    { "src": "/(.*)", "destination": "/client/reservation-frontend/dist/$1" }
+    { "src": "/api/(.*)", "dest": "server.js" },
+    { "src": "/(.*)", "dest": "/client/reservation-frontend/dist/$1" }
   ]
 }
