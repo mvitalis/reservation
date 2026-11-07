@@ -244,8 +244,9 @@ export const ClientLogin: React.FC = () => {
               )}
 
               <div>
-                <label className="block text-sm font-medium text-slate-700">Email Address</label>
-                <input
+                <label htmlFor="email" className="block text-sm font-medium text-slate-700">Email Address</label>
+                <input 
+                  id="email"
                   type="email"
                   required
                   value={email}
@@ -256,8 +257,9 @@ export const ClientLogin: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700">Password</label>
+                <label htmlFor="password" className="block text-sm font-medium text-slate-700">Password</label>
                 <input
+                  id="password"
                   type="password"
                   required
                   minLength={6}
