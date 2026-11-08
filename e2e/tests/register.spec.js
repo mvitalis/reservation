@@ -12,7 +12,7 @@ const submitButton = (page) => page.locator('button[type="submit"]');
 test.describe('Autenticación Unificada (Login y Registro)', () => {
   test.beforeEach(async ({ page }) => {
     // Como comparten página, entramos a la ruta base de login/auth
-    await page.goto('https://reservation-xo6fchjsw-mark-fada.vercel.app'); 
+    await page.goto('https://reservation-56s917ffp-mark-fada.vercel.app'); 
   });
 
   test('muestra la vista de inicio de sesión por defecto', async ({ page }) => {

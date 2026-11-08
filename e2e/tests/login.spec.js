@@ -16,7 +16,7 @@ const submitButton = (page) => page.locator('button[type="submit"]');
 
 test.describe('Pantalla de inicio de sesión', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('https://reservation-xo6fchjsw-mark-fada.vercel.app');
+    await page.goto('https://reservation-56s917ffp-mark-fada.vercel.app');
   });
 
   test('muestra el formulario de login', async ({ page }) => {

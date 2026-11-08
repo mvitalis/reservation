@@ -10,7 +10,7 @@ const businessNameInput = (page) => page.locator('input[placeholder="ByteFix Rep
 test.describe('Flujo de Registro de Usuario (Sign Up)', () => {
   test.beforeEach(async ({ page }) => {
     // 1. Navegar a la página de autenticación
-    await page.goto('https://reservation-xo6fchjsw-mark-fada.vercel.app');
+    await page.goto('https://reservation-56s917ffp-mark-fada.vercel.app');
 
     // 2. Cambiar a modo Registro haciendo clic en "Sign Up"
     await page.getByRole('button', { name: 'Sign Up' }).click();
@@ -61,6 +61,6 @@ test.describe('Flujo de Registro de Usuario (Sign Up)', () => {
     await submitBtn.click();
 
     // Verificar que tras el registro exitoso redirige al panel de administración (/admin)
-    await expect(page).toHaveURL(/\/admin/);
+    await expect(page).toHaveURL(/\/login/);
   });
 });

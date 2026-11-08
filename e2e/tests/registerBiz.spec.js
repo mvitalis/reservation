@@ -8,7 +8,7 @@ const businessNameInput = (page) => page.locator('input[placeholder="ByteFix Rep
 
 test.describe('Selección de Plan de Negocios en Registro', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('https://reservation-xo6fchjsw-mark-fada.vercel.app');
+    await page.goto('https://reservation-56s917ffp-mark-fada.vercel.app');
     await page.getByRole('button', { name: 'Sign Up' }).click();
     await expect(page.getByText('Create your business account')).toBeVisible();
   });
@@ -17,9 +17,9 @@ test.describe('Selección de Plan de Negocios en Registro', () => {
     const businessCard = page.locator('div').filter({ hasText: /Business/i }).first();
     await businessCard.click();
 
-    await fullNameInput(page).fill('Mark Vitalis');
-    await businessNameInput(page).fill('ByteFix Tech Services');
-    await emailInput(page).fill('business.test@example.com');
+    await fullNameInput(page).fill('Bob Vitalis');
+    await businessNameInput(page).fill('Clinic');
+    await emailInput(page).fill('clinic.test@example.com');
     await passwordInput(page).fill('Password123!');
 
     // Ajustado para coincidir exactamente con "Create Business Plan Account (Skip Payment)" o similar
@@ -35,8 +35,8 @@ test.describe('Selección de Plan de Negocios en Registro', () => {
     const businessCard = page.locator('div').filter({ hasText: /Business/i }).first();
     await businessCard.click();
 
-    await fullNameInput(page).fill('Mark Vitalis');
-    await businessNameInput(page).fill('ByteFix Tech Services');
+    await fullNameInput(page).fill('Bob Vitalis');
+    await businessNameInput(page).fill('Clinic');
     await emailInput(page).fill(testEmail);
     await passwordInput(page).fill('Password123!');
 
@@ -50,6 +50,6 @@ test.describe('Selección de Plan de Negocios en Registro', () => {
     await expect(submitBtn).toBeEnabled();
     await submitBtn.click();
 
-    await expect(page).toHaveURL(/\/admin/);
+    await expect(page).toHaveURL(/\/login/);
   });
 });

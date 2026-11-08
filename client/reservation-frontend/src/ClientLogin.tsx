@@ -78,7 +78,7 @@ export const ClientLogin: React.FC = () => {
       if (isSignUp) {
         await registerUserInSupabase();
         alert('Account created successfully! Redirecting...');
-        navigate('/admin');
+        navigate('/login');
       } else {
         const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
           email,
