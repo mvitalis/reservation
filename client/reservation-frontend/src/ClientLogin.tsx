@@ -293,7 +293,7 @@ export const ClientLogin: React.FC = () => {
                       try {
                         await registerUserInSupabase({ id: data.subscriptionID });
                         alert('Subscription active! Account created.');
-                        navigate('/admin');
+                        navigate('/login');
                       } catch (err: any) {
                         console.error('Registration Error:', err);
                         setErrorMsg(`Registration failed: ${err.message || 'Payment processing error.'}`);
