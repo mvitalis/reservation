@@ -1,6 +1,6 @@
 require('dotenv').config();
 const express = require('express');
-const path = require('path');
+const path = require('path'); // <-- IMPORTANTE: Necesario para manejar rutas de archivos
 const cors = express ? require('cors') : null;
 const helmet = require('helmet');
 const supabase = require('./db');
@@ -31,10 +31,7 @@ app.use(cors({
 
 app.use(express.json());
 
-// ==========================================
-// 1. RUTAS DE API (VAN PRIMERO)
-// ==========================================
-
+// 1. Fetch Services for a Business
 app.get('/api/services', async (req, res) => {
   const schema = z.object({ businessId: z.string().min(1, 'businessId is required') });
   const result = schema.safeParse(req.query);
@@ -56,6 +53,7 @@ app.get('/api/services', async (req, res) => {
   }
 });
 
+// 2. Create Booking with Double-Booking Prevention & Email Dispatch
 const bookingSchema = z.object({
   businessId: z.string().min(1, 'Business ID is required'),
   serviceId: z.string().min(1, 'Service ID is required'),
@@ -68,6 +66,7 @@ const bookingSchema = z.object({
 app.post('/api/bookings', async (req, res) => {
   const result = bookingSchema.safeParse(req.body);
   if (!result.success) {
+    console.log('Validation failure details:', result.error.errors);
     return res.status(400).json({ success: false, error: 'Validation failed', errors: result.error.errors.map(e => ({ path: e.path.join('.'), msg: e.message })) });
   }
 
@@ -76,7 +75,7 @@ app.post('/api/bookings', async (req, res) => {
   try {
     const { data: service, error: serviceErr } = await supabase
       .from('services')
-      .select('*')
+      .select('duration_minutes')
       .eq('id', serviceId)
       .single();
 
@@ -100,7 +99,7 @@ app.post('/api/bookings', async (req, res) => {
           booking_end: end.toISOString()
         }
       ])
-      .select('*')
+      .select('*, services(name, duration_minutes, price)')
       .single();
 
     if (insertErr) {
@@ -110,13 +109,6 @@ app.post('/api/bookings', async (req, res) => {
       return res.status(500).json({ success: false, error: insertErr.message });
     }
 
-    // Adjuntar datos del servicio manualmente para evitar fallos de relación en Supabase
-    booking.services = {
-      name: service.name,
-      duration_minutes: service.duration_minutes,
-      price: service.price
-    };
-
     const appointmentDate = new Date(booking.booking_start).toLocaleString('en-US', {
       dateStyle: 'full',
       timeStyle: 'short'
@@ -124,10 +116,10 @@ app.post('/api/bookings', async (req, res) => {
 
     try {
       if (process.env.RESEND_API_KEY) {
-        await resend.emails.send({
+        const emailResponse = await resend.emails.send({
           from: 'Reservations <onboarding@resend.dev>',
           to: [customerEmail],
-          subject: `Booking Confirmed: ${service.name}`,
+          subject: `Booking Confirmed: ${booking.services.name}`,
           html: `
             <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
               <h2 style="color: #6b21a8;">Appointment Confirmed!</h2>
@@ -135,16 +127,17 @@ app.post('/api/bookings', async (req, res) => {
               <p>Your reservation has been successfully booked.</p>
               
               <div style="background-color: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                <p style="margin: 5px 0;"><strong>Service:</strong> ${service.name}</p>
+                <p style="margin: 5px 0;"><strong>Service:</strong> ${booking.services.name}</p>
                 <p style="margin: 5px 0;"><strong>Date & Time:</strong> ${appointmentDate}</p>
-                <p style="margin: 5px 0;"><strong>Duration:</strong> ${service.duration_minutes} minutes</p>
-                <p style="margin: 5px 0;"><strong>Total Price:</strong> $${service.price}</p>
+                <p style="margin: 5px 0;"><strong>Duration:</strong> ${booking.services.duration_minutes} minutes</p>
+                <p style="margin: 5px 0;"><strong>Total Price:</strong> $${booking.services.price}</p>
               </div>
 
               <p style="color: #6b6b6b; font-size: 14px;">If you need to cancel or reschedule, please contact the business directly.</p>
             </div>
           `
         });
+        console.log('Resend Success Response:', emailResponse);
       }
     } catch (emailErr) {
       console.error('Failed to send confirmation email:', emailErr);
@@ -153,10 +146,11 @@ app.post('/api/bookings', async (req, res) => {
     res.status(201).json({ success: true, data: booking });
   } catch (err) {
     console.error('Server Booking Error:', err);
-    res.status(500).json({ success: false, error: err.message || 'Server error processing booking.' });
+    res.status(500).json({ success: false, error: 'Server error processing booking.' });
   }
 });
 
+// 3. Fetch all bookings for a business (Admin View)
 const adminBookingsSchema = z.object({
   businessId: z.string().min(1, 'businessId is required'),
   date: z.string().optional(),
@@ -172,7 +166,7 @@ app.get('/api/admin/bookings', async (req, res) => {
   try {
     let query = supabase
       .from('bookings')
-      .select('*')
+      .select('*, services(name, duration_minutes, price)')
       .eq('business_id', businessId)
       .order('booking_start', { ascending: true });
 
@@ -194,30 +188,15 @@ app.get('/api/admin/bookings', async (req, res) => {
 
     const { data, error } = await query;
 
-    if (error) {
-      return res.status(500).json({ success: false, error: error.message });
-    }
-
-    // Obtener los servicios correspondientes para enriquecer las reservas de forma segura
-    const { data: servicesData } = await supabase
-      .from('services')
-      .select('id, name, duration_minutes, price')
-      .eq('business_id', businessId);
-
-    const servicesMap = new Map((servicesData || []).map(s => [s.id, s]));
-
-    const enrichedBookings = (data || []).map(b => ({
-      ...b,
-      services: servicesMap.get(b.service_id) || { name: 'Unknown Service', duration_minutes: 0, price: 0 }
-    }));
-
-    res.json({ success: true, data: enrichedBookings });
+    if (error) throw error;
+    res.json({ success: true, data });
   } catch (err) {
     console.error('Fetch bookings error:', err);
-    res.status(500).json({ success: false, error: err.message || 'Server error fetching bookings' });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
+// 4. Update Booking Status
 const updateStatusSchema = z.object({
   status: z.enum(['confirmed', 'completed', 'cancelled', 'no-show'])
 });
@@ -237,14 +216,15 @@ app.patch('/api/admin/bookings/:id', async (req, res) => {
       .select()
       .single();
 
-    if (error) return res.status(500).json({ success: false, error: error.message });
+    if (error) throw error;
     res.json({ success: true, data });
   } catch (err) {
     console.error('Update status error:', err);
-    res.status(500).json({ success: false, error: err.message || 'Server error' });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
+// POST: Create a new service
 const createServiceSchema = z.object({
   businessId: z.string().min(1),
   name: z.string().min(1),
@@ -272,14 +252,15 @@ app.post('/api/admin/services', async (req, res) => {
       .select()
       .single();
 
-    if (error) return res.status(500).json({ success: false, error: error.message });
+    if (error) throw error;
     res.status(201).json({ success: true, data });
   } catch (err) {
     console.error('Create service error:', err);
-    res.status(500).json({ success: false, error: err.message || 'Server error' });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
+// PUT: Update an existing service
 const updateServiceSchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
@@ -307,14 +288,15 @@ app.put('/api/admin/services/:id', async (req, res) => {
       .select()
       .single();
 
-    if (error) return res.status(500).json({ success: false, error: error.message });
+    if (error) throw error;
     res.json({ success: true, data });
   } catch (err) {
     console.error('Update service error:', err);
-    res.status(500).json({ success: false, error: err.message || 'Server error' });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
+// DELETE: Delete a service
 app.delete('/api/admin/services/:id', async (req, res) => {
   const { id } = req.params;
 
@@ -324,18 +306,17 @@ app.delete('/api/admin/services/:id', async (req, res) => {
       .delete()
       .eq('id', id);
 
-    if (error) return res.status(500).json({ success: false, error: error.message });
+    if (error) throw error;
     res.json({ success: true, message: 'Service deleted successfully' });
   } catch (err) {
     console.error('Delete service error:', err);
-    res.status(500).json({ success: false, error: err.message || 'Server error' });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
 // ==========================================
-// 2. SOPORTE DE REACT ROUTER (CATCH-ALL) AL FINAL
+// SOPORTE DE REACT ROUTER (CATCH-ALL) - AÑADIDO
 // ==========================================
-
 app.use(express.static(path.join(__dirname, 'dist')));
 
 app.get('*', (req, res) => {
