@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
-const cors = express ? require('cors') : null; // o import normal de cors
+const path = require('path');
+const cors = express ? require('cors') : null;
 const helmet = require('helmet');
 const supabase = require('./db');
 const { z } = require('zod');
@@ -19,7 +20,6 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Permitir solicitudes sin origen (como Postman o apps móviles) o si están permitidas
     if (!origin || allowedOrigins.indexOf(origin) !== -1 || origin.endsWith('.vercel.app')) {
       callback(null, true);
     } else {
@@ -31,7 +31,10 @@ app.use(cors({
 
 app.use(express.json());
 
-// 1. Fetch Services for a Business
+// ==========================================
+// 1. RUTAS DE API (VAN PRIMERO)
+// ==========================================
+
 app.get('/api/services', async (req, res) => {
   const schema = z.object({ businessId: z.string().min(1, 'businessId is required') });
   const result = schema.safeParse(req.query);
@@ -53,7 +56,6 @@ app.get('/api/services', async (req, res) => {
   }
 });
 
-// 2. Create Booking with Double-Booking Prevention & Email Dispatch
 const bookingSchema = z.object({
   businessId: z.string().min(1, 'Business ID is required'),
   serviceId: z.string().min(1, 'Service ID is required'),
@@ -73,7 +75,6 @@ app.post('/api/bookings', async (req, res) => {
   const { businessId, serviceId, customerName, customerEmail, customerPhone, bookingStart } = result.data;
 
   try {
-    // Check service duration
     const { data: service, error: serviceErr } = await supabase
       .from('services')
       .select('duration_minutes')
@@ -87,7 +88,6 @@ app.post('/api/bookings', async (req, res) => {
     const start = new Date(bookingStart);
     const end = new Date(start.getTime() + service.duration_minutes * 60000);
 
-    // Insert booking and join relational services data for email template
     const { data: booking, error: insertErr } = await supabase
       .from('bookings')
       .insert([
@@ -111,13 +111,11 @@ app.post('/api/bookings', async (req, res) => {
       return res.status(500).json({ success: false, error: insertErr.message });
     }
 
-    // Format appointment time for the email body
     const appointmentDate = new Date(booking.booking_start).toLocaleString('en-US', {
       dateStyle: 'full',
       timeStyle: 'short'
     });
 
-    // Send Confirmation Email asynchronously
     try {
       if (process.env.RESEND_API_KEY) {
         const emailResponse = await resend.emails.send({
@@ -154,7 +152,6 @@ app.post('/api/bookings', async (req, res) => {
   }
 });
 
-// 3. Fetch all bookings for a business (Admin View)
 const adminBookingsSchema = z.object({
   businessId: z.string().min(1, 'businessId is required'),
   date: z.string().optional(),
@@ -200,7 +197,6 @@ app.get('/api/admin/bookings', async (req, res) => {
   }
 });
 
-// 4. Update Booking Status
 const updateStatusSchema = z.object({
   status: z.enum(['confirmed', 'completed', 'cancelled', 'no-show'])
 });
@@ -228,7 +224,6 @@ app.patch('/api/admin/bookings/:id', async (req, res) => {
   }
 });
 
-// POST: Create a new service
 const createServiceSchema = z.object({
   businessId: z.string().min(1),
   name: z.string().min(1),
@@ -264,7 +259,6 @@ app.post('/api/admin/services', async (req, res) => {
   }
 });
 
-// PUT: Update an existing service
 const updateServiceSchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
@@ -300,7 +294,6 @@ app.put('/api/admin/services/:id', async (req, res) => {
   }
 });
 
-// DELETE: Delete a service
 app.delete('/api/admin/services/:id', async (req, res) => {
   const { id } = req.params;
 
@@ -318,36 +311,22 @@ app.delete('/api/admin/services/:id', async (req, res) => {
   }
 });
 
+// ==========================================
+// 2. SOPORTE DE REACT ROUTER (CATCH-ALL) AL FINAL
+// ==========================================
+
+// Servir archivos estáticos generados por tu bundler (ej. Vite genera 'dist')
+app.use(express.static(path.join(__dirname, 'dist')));
+
+// Redirigir cualquier otra ruta al index.html para que el enrutador del cliente funcione
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
 // Inicio del servidor adaptado para entorno local y Vercel
 const PORT = process.env.PORT || 5000;
 if (process.env.NODE_ENV !== 'production') {
   app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
 }
-
-const express = require('path'); // o path estándar de node
-const path = require('path');
-const app = express();
-
-app.use(express.json());
-
-// 1. TUS RUTAS DE API VAN PRIMERO
-app.get('/api/tu-endpoint', (req, res) => {
-  // Lógica de tu API
-  res.json({ success: true });
-});
-
-// 2. SERVIR ARCHIVOS ESTÁTICOS DE REACT (si tu build está en 'dist' o 'build')
-app.use(express.static(path.join(__dirname, 'dist')));
-
-// 3. COMODÍN (CATCH-ALL) PARA REACT ROUTER AL FINAL
-// Esto evita el error 404 en rutas como /book/vitalis-designs o /admin
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-});
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Servidor corriendo en puerto ${PORT}`);
-});
 
 module.exports = app;
