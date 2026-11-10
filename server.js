@@ -318,24 +318,11 @@ app.delete('/api/admin/services/:id', async (req, res) => {
   }
 });
 
-  // 1. Primero tus rutas de API
-  app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok' });
-  });
-
-  // 2. Después los archivos estáticos generados por el frontend
-  const path = require('path');
-  app.use(express.static(path.join(__dirname, 'client/reservation-frontend/dist')));
-
-  // 3. POR ÚLTIMO: La ruta comodín para que React Router maneje las vistas como /book/:slug
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'client/reservation-frontend/dist', 'index.html'));
-  });
-  // Inicio del servidor adaptado para entorno local y Vercel
-  const PORT = process.env.PORT || 5000;
-  if (process.env.NODE_ENV !== 'production') {
-    app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
-  }
+// Inicio del servidor adaptado para entorno local y Vercel
+const PORT = process.env.PORT || 5000;
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
+}
 
 
 

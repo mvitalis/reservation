@@ -1,15 +1,10 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "server.js",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "server.js"
-    }
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/[...slug]" },
+    { "source": "/book/:slug", "destination": "/client/reservation-frontend/dist/index.html" },
+    { "source": "/admin", "destination": "/client/reservation-frontend/dist/index.html" },
+    { "source": "/login", "destination": "/client/reservation-frontend/dist/index.html" },
+    { "source": "/(.*)", "destination": "/client/reservation-frontend/dist/$1" }
   ]
 }
