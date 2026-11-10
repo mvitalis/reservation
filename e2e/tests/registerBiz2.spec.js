@@ -9,7 +9,7 @@ const businessNameInput = (page) => page.locator('input[placeholder="ByteFix Rep
 test.describe('Selección de Plan de Negocios en Registro', () => {
   test.beforeEach(async ({ page, context }) => {
     await context.clearCookies();
-    await page.goto('https://reservation-56s917ffp-mark-fada.vercel.app');
+    await page.goto('https://reservation-di4k18gow-mark-fada.vercel.app');
     await page.evaluate(() => localStorage.clear());
 
     await page.getByRole('button', { name: 'Sign Up' }).click();
@@ -20,11 +20,12 @@ test.describe('Selección de Plan de Negocios en Registro', () => {
     const uniqueId = `${Date.now()}_${Math.floor(Math.random() * 1000)}`;
     const testEmail = `biz.user.${uniqueId}@ejemplo.com`;
 
-    const businessCard = page.locator('div').filter({ hasText: /Business/i }).first();
-    await businessCard.click();
+    // 💡 SOLUCIÓN: Seleccionar explícitamente el contenedor de la tarjeta Business basándonos en el título del encabezado h3
+    const businessHeading = page.locator('h3', { hasText: /^Business$/i });
+    await businessHeading.locator('xpath=..').click(); // Hace clic en el elemento padre (la tarjeta completa)
 
-    await fullNameInput(page).fill('Kevin Bob');
-    await businessNameInput(page).fill('Kevins Bike Shop');
+    await fullNameInput(page).fill('Jamie Fox');
+    await businessNameInput(page).fill('Piano School Services');
     await emailInput(page).fill(testEmail);
     await passwordInput(page).fill('Password123!');
 
@@ -34,19 +35,18 @@ test.describe('Selección de Plan de Negocios en Registro', () => {
 
     const submitBtn = page.getByRole('button', { name: /Create .* Account \(Skip Payment\)/i });
 
-    // 1. Configurar la espera de la respuesta ANTES de hacer clic
     const responsePromise = page.waitForResponse((response) =>
       response.url().includes('/auth/v1/signup')
     );
 
-    // 2. Hacer clic para enviar el formulario
     await submitBtn.click();
 
-    // 3. Esperar a que la petición se complete exitosamente
     const response = await responsePromise;
     expect(response.status()).toBeLessThan(600);
 
-    // Confirmar redirección al panel de administración
+    // Opcional: Validar que el botón enviado contenía la palabra Business antes del clic
+    //await expect(submitBtn).toHaveText(/Business/i);
+
     await expect(page).toHaveURL(/\/login/);
   });
 });

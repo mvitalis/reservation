@@ -324,4 +324,30 @@ if (process.env.NODE_ENV !== 'production') {
   app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
 }
 
+const express = require('path'); // o path estándar de node
+const path = require('path');
+const app = express();
+
+app.use(express.json());
+
+// 1. TUS RUTAS DE API VAN PRIMERO
+app.get('/api/tu-endpoint', (req, res) => {
+  // Lógica de tu API
+  res.json({ success: true });
+});
+
+// 2. SERVIR ARCHIVOS ESTÁTICOS DE REACT (si tu build está en 'dist' o 'build')
+app.use(express.static(path.join(__dirname, 'dist')));
+
+// 3. COMODÍN (CATCH-ALL) PARA REACT ROUTER AL FINAL
+// Esto evita el error 404 en rutas como /book/vitalis-designs o /admin
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Servidor corriendo en puerto ${PORT}`);
+});
+
 module.exports = app;
