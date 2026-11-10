@@ -1,7 +1,6 @@
 require('dotenv').config();
 const express = require('express');
-const path = require('path'); // <-- IMPORTANTE: Necesario para manejar rutas de archivos
-const cors = express ? require('cors') : null;
+const cors = express ? require('cors') : null; // o import normal de cors
 const helmet = require('helmet');
 const supabase = require('./db');
 const { z } = require('zod');
@@ -20,6 +19,7 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function (origin, callback) {
+    // Permitir solicitudes sin origen (como Postman o apps móviles) o si están permitidas
     if (!origin || allowedOrigins.indexOf(origin) !== -1 || origin.endsWith('.vercel.app')) {
       callback(null, true);
     } else {
@@ -73,6 +73,7 @@ app.post('/api/bookings', async (req, res) => {
   const { businessId, serviceId, customerName, customerEmail, customerPhone, bookingStart } = result.data;
 
   try {
+    // Check service duration
     const { data: service, error: serviceErr } = await supabase
       .from('services')
       .select('duration_minutes')
@@ -86,6 +87,7 @@ app.post('/api/bookings', async (req, res) => {
     const start = new Date(bookingStart);
     const end = new Date(start.getTime() + service.duration_minutes * 60000);
 
+    // Insert booking and join relational services data for email template
     const { data: booking, error: insertErr } = await supabase
       .from('bookings')
       .insert([
@@ -109,11 +111,13 @@ app.post('/api/bookings', async (req, res) => {
       return res.status(500).json({ success: false, error: insertErr.message });
     }
 
+    // Format appointment time for the email body
     const appointmentDate = new Date(booking.booking_start).toLocaleString('en-US', {
       dateStyle: 'full',
       timeStyle: 'short'
     });
 
+    // Send Confirmation Email asynchronously
     try {
       if (process.env.RESEND_API_KEY) {
         const emailResponse = await resend.emails.send({
@@ -314,19 +318,12 @@ app.delete('/api/admin/services/:id', async (req, res) => {
   }
 });
 
-// ==========================================
-// SOPORTE DE REACT ROUTER (CATCH-ALL) - AÑADIDO
-// ==========================================
-app.use(express.static(path.join(__dirname, 'dist')));
-
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-});
-
 // Inicio del servidor adaptado para entorno local y Vercel
 const PORT = process.env.PORT || 5000;
 if (process.env.NODE_ENV !== 'production') {
   app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
 }
+
+
 
 module.exports = app;
