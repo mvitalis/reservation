@@ -93,6 +93,9 @@ export const PublicBookingView: React.FC = () => {
   const [selectedSlot, setSelectedSlot] = useState<string>('');
   const [isClosedDay, setIsClosedDay] = useState<boolean>(false);
 
+  // 👈 Estado local para aislar el tema oscuro/claro solo en esta vista pública
+  const [isPublicDark, setIsPublicDark] = useState<boolean>(false);
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -112,36 +115,31 @@ export const PublicBookingView: React.FC = () => {
   const turnstileRef = useRef<TurnstileInstance>(null);
   const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || import.meta.env.REACT_APP_TURNSTILE_SITE_KEY || '1x00000000000000000000AA';
 
-  // 👈 Aplicar el tema público y limpiar al desmontar para evitar que afecte al Dashboard
+  // 👈 Manejo del tema público mediante estado local (sin tocar el documento global)
   useEffect(() => {
-    const root = document.documentElement;
     const theme = businessInfo.public_theme || 'light';
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
-    const applyTheme = () => {
-      root.classList.remove('dark');
+    const evaluateTheme = () => {
       if (theme === 'dark') {
-        root.classList.add('dark');
+        setIsPublicDark(true);
       } else if (theme === 'system' && mediaQuery.matches) {
-        root.classList.add('dark');
+        setIsPublicDark(true);
+      } else {
+        setIsPublicDark(false);
       }
     };
 
-    applyTheme();
+    evaluateTheme();
 
     const handleSystemChange = () => {
       if (theme === 'system') {
-        applyTheme();
+        evaluateTheme();
       }
     };
 
     mediaQuery.addEventListener('change', handleSystemChange);
-
-    // FUNCIÓN DE LIMPIEZA AL SALIR DE LA VISTA PÚBLICA
-    return () => {
-      mediaQuery.removeEventListener('change', handleSystemChange);
-      root.classList.remove('dark'); // Remueve el modo oscuro al volver al Admin Dashboard
-    };
+    return () => mediaQuery.removeEventListener('change', handleSystemChange);
   }, [businessInfo.public_theme]);
 
   // Fetch Business, Custom Branding, Working Hours, and Public Theme
@@ -470,275 +468,277 @@ export const PublicBookingView: React.FC = () => {
   const now = new Date();
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100 pb-12 transition-colors">
-      {/* Header / Cover Banner */}
-      <div
-        className="w-full h-48 sm:h-64 bg-cover bg-center relative transition-all"
-        style={{
-          backgroundImage: businessInfo.header_image_url ? `url(${businessInfo.header_image_url})` : 'none',
-          backgroundColor: brandColor,
-        }}
-      />
+    <div className={`${isPublicDark ? 'dark' : ''} min-h-screen transition-colors`}>
+      <div className="min-h-screen bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100 pb-12 transition-colors">
+        {/* Header / Cover Banner */}
+        <div
+          className="w-full h-48 sm:h-64 bg-cover bg-center relative transition-all"
+          style={{
+            backgroundImage: businessInfo.header_image_url ? `url(${businessInfo.header_image_url})` : 'none',
+            backgroundColor: brandColor,
+          }}
+        />
 
-      <div className="max-w-2xl mx-auto px-4 -mt-20 relative z-10">
-        <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-xl shadow-lg font-sans border border-gray-100 dark:border-slate-800 transition-colors">
-          
-          {/* Logo & Business Name directly underneath */}
-          <div className="flex flex-col items-center text-center mb-6">
-            {businessInfo.logo_url ? (
-              <img
-                src={businessInfo.logo_url}
-                alt={businessInfo.name}
-                className="w-24 h-24 rounded-full border-4 border-white dark:border-slate-900 shadow-md object-cover bg-white dark:bg-slate-800"
-              />
-            ) : (
-              <div
-                className="w-24 h-24 rounded-full border-4 border-white dark:border-slate-900 shadow-md flex items-center justify-center font-bold text-white text-3xl select-none"
-                style={{ backgroundColor: brandColor }}
-              >
-                {businessInfo.name.charAt(0) || 'B'}
+        <div className="max-w-2xl mx-auto px-4 -mt-20 relative z-10">
+          <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-xl shadow-lg font-sans border border-gray-100 dark:border-slate-800 transition-colors">
+            
+            {/* Logo & Business Name directly underneath */}
+            <div className="flex flex-col items-center text-center mb-6">
+              {businessInfo.logo_url ? (
+                <img
+                  src={businessInfo.logo_url}
+                  alt={businessInfo.name}
+                  className="w-24 h-24 rounded-full border-4 border-white dark:border-slate-900 shadow-md object-cover bg-white dark:bg-slate-800"
+                />
+              ) : (
+                <div
+                  className="w-24 h-24 rounded-full border-4 border-white dark:border-slate-900 shadow-md flex items-center justify-center font-bold text-white text-3xl select-none"
+                  style={{ backgroundColor: brandColor }}
+                >
+                  {businessInfo.name.charAt(0) || 'B'}
+                </div>
+              )}
+
+              <h1 className="text-2xl font-extrabold text-gray-900 dark:text-slate-100 mt-3">{businessInfo.name}</h1>
+              <p className="text-sm font-medium text-gray-500 dark:text-slate-400 mt-1">Book an Appointment</p>
+            </div>
+
+            {/* Limit Reached Warning Banner */}
+            {isLimitReached && (
+              <div className="p-4 mb-6 bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-sm rounded-lg text-center font-medium">
+                This business is currently not accepting new online appointments for the remainder of this month as it has reached its monthly booking capacity.
               </div>
             )}
 
-            <h1 className="text-2xl font-extrabold text-gray-900 dark:text-slate-100 mt-3">{businessInfo.name}</h1>
-            <p className="text-sm font-medium text-gray-500 dark:text-slate-400 mt-1">Book an Appointment</p>
-          </div>
-
-          {/* Limit Reached Warning Banner */}
-          {isLimitReached && (
-            <div className="p-4 mb-6 bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-sm rounded-lg text-center font-medium">
-              This business is currently not accepting new online appointments for the remainder of this month as it has reached its monthly booking capacity.
-            </div>
-          )}
-
-          {message && (
-            <div className={`p-4 mb-6 text-sm rounded-lg ${
-              message.type === 'success'
-                ? 'bg-green-100 dark:bg-green-950/60 text-green-700 dark:text-green-300'
-                : 'bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-300'
-            }`}>
-              {message.text}
-            </div>
-          )}
-
-          {fetchingBusiness || usageLoading ? (
-            <div className="p-8 text-center text-gray-500 dark:text-slate-400">Loading booking options...</div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-6">
-              
-              {/* Step 1: Location Branch Selection */}
-              {locations.length > 0 && (
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">
-                    1. Select Location Branch
-                  </label>
-                  <select
-                    value={selectedLocation}
-                    onChange={(e) => {
-                      setSelectedLocation(e.target.value);
-                      setSelectedSlot('');
-                    }}
-                    disabled={isLimitReached}
-                    required
-                    className="w-full p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-200 disabled:bg-gray-100 dark:disabled:bg-slate-800/50 disabled:cursor-not-allowed"
-                  >
-                    <option value="">-- Select Location --</option>
-                    {locations.map((loc) => (
-                      <option key={loc.id} value={loc.id}>
-                        {loc.name} {loc.address ? `(${loc.address})` : ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {/* Step 2: Staff Member Selection */}
-              {selectedLocation && staffMembers.length > 0 && (
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">
-                    2. Select Staff Member (Optional)
-                  </label>
-                  <select
-                    value={selectedStaff}
-                    onChange={(e) => {
-                      setSelectedStaff(e.target.value);
-                      setSelectedSlot('');
-                    }}
-                    disabled={isLimitReached}
-                    className="w-full p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-200 disabled:bg-gray-100 dark:disabled:bg-slate-800/50 disabled:cursor-not-allowed"
-                  >
-                    <option value="">-- Any Available Staff Member --</option>
-                    {staffMembers.map((member) => (
-                      <option key={member.id} value={member.id}>
-                        {member.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {/* Step 3: Service Selection */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">
-                  {locations.length > 0 ? (staffMembers.length > 0 ? '3. Select Service' : '2. Select Service') : '1. Select Service'}
-                </label>
-                <select
-                  value={selectedService}
-                  onChange={(e) => setSelectedService(e.target.value)}
-                  disabled={isLimitReached}
-                  required
-                  className="w-full p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-200 disabled:bg-gray-100 dark:disabled:bg-slate-800/50 disabled:cursor-not-allowed"
-                >
-                  <option value="">-- Select Service --</option>
-                  {services.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name} ({s.duration_minutes} mins) - ${s.price}
-                    </option>
-                  ))}
-                </select>
+            {message && (
+              <div className={`p-4 mb-6 text-sm rounded-lg ${
+                message.type === 'success'
+                  ? 'bg-green-100 dark:bg-green-950/60 text-green-700 dark:text-green-300'
+                  : 'bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-300'
+              }`}>
+                {message.text}
               </div>
+            )}
 
-              {/* Step 4: Date Selection */}
-              {selectedService && (
+            {fetchingBusiness || usageLoading ? (
+              <div className="p-8 text-center text-gray-500 dark:text-slate-400">Loading booking options...</div>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-6">
+                
+                {/* Step 1: Location Branch Selection */}
+                {locations.length > 0 && (
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">
+                      1. Select Location Branch
+                    </label>
+                    <select
+                      value={selectedLocation}
+                      onChange={(e) => {
+                        setSelectedLocation(e.target.value);
+                        setSelectedSlot('');
+                      }}
+                      disabled={isLimitReached}
+                      required
+                      className="w-full p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-200 disabled:bg-gray-100 dark:disabled:bg-slate-800/50 disabled:cursor-not-allowed"
+                    >
+                      <option value="">-- Select Location --</option>
+                      {locations.map((loc) => (
+                        <option key={loc.id} value={loc.id}>
+                          {loc.name} {loc.address ? `(${loc.address})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Step 2: Staff Member Selection */}
+                {selectedLocation && staffMembers.length > 0 && (
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">
+                      2. Select Staff Member (Optional)
+                    </label>
+                    <select
+                      value={selectedStaff}
+                      onChange={(e) => {
+                        setSelectedStaff(e.target.value);
+                        setSelectedSlot('');
+                      }}
+                      disabled={isLimitReached}
+                      className="w-full p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-200 disabled:bg-gray-100 dark:disabled:bg-slate-800/50 disabled:cursor-not-allowed"
+                    >
+                      <option value="">-- Any Available Staff Member --</option>
+                      {staffMembers.map((member) => (
+                        <option key={member.id} value={member.id}>
+                          {member.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Step 3: Service Selection */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">
-                    {locations.length > 0 ? (staffMembers.length > 0 ? '4. Select Date' : '3. Select Date') : '2. Select Date'}
+                    {locations.length > 0 ? (staffMembers.length > 0 ? '3. Select Service' : '2. Select Service') : '1. Select Service'}
                   </label>
-                  <input
-                    type="date"
-                    value={selectedDate}
-                    min={new Date().toISOString().split('T')[0]}
-                    onChange={(e) => setSelectedDate(e.target.value)}
+                  <select
+                    value={selectedService}
+                    onChange={(e) => setSelectedService(e.target.value)}
                     disabled={isLimitReached}
                     required
                     className="w-full p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-200 disabled:bg-gray-100 dark:disabled:bg-slate-800/50 disabled:cursor-not-allowed"
-                  />
-                </div>
-              )}
-
-              {/* Step 5: Time Slots Selection */}
-              {selectedService && selectedDate && (
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">
-                    {locations.length > 0 ? (staffMembers.length > 0 ? '5. Available Time Slots' : '4. Available Time Slots') : '3. Available Time Slots'}
-                  </label>
-
-                  {isClosedDay ? (
-                    <div className="p-4 bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-sm rounded-lg text-center font-medium">
-                      The business is closed on this day. Please select another date.
-                    </div>
-                  ) : fetchingSlots ? (
-                    <div className="p-4 text-sm text-gray-500 dark:text-slate-400 text-center">Checking availability...</div>
-                  ) : (
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      {availableSlots.map((slot) => {
-                        const slotDate = new Date(slot);
-                        const timeString = slotDate.toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        });
-
-                        const slotTimestamp = slotDate.getTime();
-                        const isBooked = bookedTimestamps.includes(slotTimestamp);
-                        const isPastSlot = slotDate < now;
-                        const isDisabled = isBooked || isPastSlot || isLimitReached;
-                        const isSelected = selectedSlot === slot;
-
-                        return (
-                          <button
-                            key={slot}
-                            type="button"
-                            disabled={isDisabled}
-                            onClick={() => !isDisabled && setSelectedSlot(slot)}
-                            className={`p-3 text-sm rounded-lg border font-medium transition-all ${
-                              isDisabled
-                                ? 'bg-gray-100 dark:bg-slate-800/40 text-gray-400 dark:text-slate-600 border-gray-200 dark:border-slate-800 cursor-not-allowed line-through opacity-70'
-                                : isSelected
-                                ? 'text-white border-transparent shadow-md'
-                                : 'bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200 border-gray-300 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 cursor-pointer'
-                            }`}
-                            style={isSelected ? { backgroundColor: brandColor } : {}}
-                          >
-                            {timeString} {isBooked ? '(Booked)' : isPastSlot ? '(Passed)' : ''}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Step 6: Customer Details & Verification */}
-              {selectedSlot && (
-                <div className="space-y-4 border-t border-gray-200 dark:border-slate-800 pt-6">
-                  <h3 className="text-lg font-semibold text-gray-800 dark:text-slate-200">Your Contact Details</h3>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase mb-1">Full Name</label>
-                    <input
-                      type="text"
-                      required
-                      disabled={isLimitReached}
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full p-3 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-200 rounded-lg disabled:bg-gray-100 dark:disabled:bg-slate-800/50"
-                      placeholder="Jane Doe"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase mb-1">Email Address</label>
-                    <input
-                      type="email"
-                      required
-                      disabled={isLimitReached}
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full p-3 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-200 rounded-lg disabled:bg-gray-100 dark:disabled:bg-slate-800/50"
-                      placeholder="jane@example.com"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase mb-1">Phone Number</label>
-                    <input
-                      type="tel"
-                      required
-                      disabled={isLimitReached}
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      className="w-full p-3 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-200 rounded-lg disabled:bg-gray-100 dark:disabled:bg-slate-800/50"
-                      placeholder="(868) 555-0199"
-                    />
-                  </div>
-
-                  {/* Cloudflare Turnstile Verification Widget */}
-                  <div className="flex justify-center my-4">
-                    <Turnstile
-                      ref={turnstileRef}
-                      siteKey={TURNSTILE_SITE_KEY}
-                      onSuccess={(token) => setTurnstileToken(token)}
-                      onExpire={() => setTurnstileToken(null)}
-                      onError={() => setTurnstileToken(null)}
-                      options={{
-                        theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light',
-                        size: 'normal',
-                      }}
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={loading || isLimitReached || !turnstileToken}
-                    className="w-full py-3.5 text-white font-semibold rounded-lg shadow-lg cursor-pointer transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{ backgroundColor: brandColor }}
                   >
-                    {loading ? 'Processing...' : 'Confirm Appointment'}
-                  </button>
+                    <option value="">-- Select Service --</option>
+                    {services.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} ({s.duration_minutes} mins) - ${s.price}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              )}
-            </form>
-          )}
+
+                {/* Step 4: Date Selection */}
+                {selectedService && (
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">
+                      {locations.length > 0 ? (staffMembers.length > 0 ? '4. Select Date' : '3. Select Date') : '2. Select Date'}
+                    </label>
+                    <input
+                      type="date"
+                      value={selectedDate}
+                      min={new Date().toISOString().split('T')[0]}
+                      onChange={(e) => setSelectedDate(e.target.value)}
+                      disabled={isLimitReached}
+                      required
+                      className="w-full p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-200 disabled:bg-gray-100 dark:disabled:bg-slate-800/50 disabled:cursor-not-allowed"
+                    />
+                  </div>
+                )}
+
+                {/* Step 5: Time Slots Selection */}
+                {selectedService && selectedDate && (
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">
+                      {locations.length > 0 ? (staffMembers.length > 0 ? '5. Available Time Slots' : '4. Available Time Slots') : '3. Available Time Slots'}
+                    </label>
+
+                    {isClosedDay ? (
+                      <div className="p-4 bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-sm rounded-lg text-center font-medium">
+                        The business is closed on this day. Please select another date.
+                      </div>
+                    ) : fetchingSlots ? (
+                      <div className="p-4 text-sm text-gray-500 dark:text-slate-400 text-center">Checking availability...</div>
+                    ) : (
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        {availableSlots.map((slot) => {
+                          const slotDate = new Date(slot);
+                          const timeString = slotDate.toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          });
+
+                          const slotTimestamp = slotDate.getTime();
+                          const isBooked = bookedTimestamps.includes(slotTimestamp);
+                          const isPastSlot = slotDate < now;
+                          const isDisabled = isBooked || isPastSlot || isLimitReached;
+                          const isSelected = selectedSlot === slot;
+
+                          return (
+                            <button
+                              key={slot}
+                              type="button"
+                              disabled={isDisabled}
+                              onClick={() => !isDisabled && setSelectedSlot(slot)}
+                              className={`p-3 text-sm rounded-lg border font-medium transition-all ${
+                                isDisabled
+                                  ? 'bg-gray-100 dark:bg-slate-800/40 text-gray-400 dark:text-slate-600 border-gray-200 dark:border-slate-800 cursor-not-allowed line-through opacity-70'
+                                  : isSelected
+                                  ? 'text-white border-transparent shadow-md'
+                                  : 'bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200 border-gray-300 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 cursor-pointer'
+                              }`}
+                              style={isSelected ? { backgroundColor: brandColor } : {}}
+                            >
+                              {timeString} {isBooked ? '(Booked)' : isPastSlot ? '(Passed)' : ''}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Step 6: Customer Details & Verification */}
+                {selectedSlot && (
+                  <div className="space-y-4 border-t border-gray-200 dark:border-slate-800 pt-6">
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-slate-200">Your Contact Details</h3>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase mb-1">Full Name</label>
+                      <input
+                        type="text"
+                        required
+                        disabled={isLimitReached}
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        className="w-full p-3 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-200 rounded-lg disabled:bg-gray-100 dark:disabled:bg-slate-800/50"
+                        placeholder="Jane Doe"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase mb-1">Email Address</label>
+                      <input
+                        type="email"
+                        required
+                        disabled={isLimitReached}
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        className="w-full p-3 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-200 rounded-lg disabled:bg-gray-100 dark:disabled:bg-slate-800/50"
+                        placeholder="jane@example.com"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase mb-1">Phone Number</label>
+                      <input
+                        type="tel"
+                        required
+                        disabled={isLimitReached}
+                        value={formData.phone}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        className="w-full p-3 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-200 rounded-lg disabled:bg-gray-100 dark:disabled:bg-slate-800/50"
+                        placeholder="(868) 555-0199"
+                      />
+                    </div>
+
+                    {/* Cloudflare Turnstile Verification Widget */}
+                    <div className="flex justify-center my-4">
+                      <Turnstile
+                        ref={turnstileRef}
+                        siteKey={TURNSTILE_SITE_KEY}
+                        onSuccess={(token) => setTurnstileToken(token)}
+                        onExpire={() => setTurnstileToken(null)}
+                        onError={() => setTurnstileToken(null)}
+                        options={{
+                          theme: isPublicDark ? 'dark' : 'light',
+                          size: 'normal',
+                        }}
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={loading || isLimitReached || !turnstileToken}
+                      className="w-full py-3.5 text-white font-semibold rounded-lg shadow-lg cursor-pointer transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                      style={{ backgroundColor: brandColor }}
+                    >
+                      {loading ? 'Processing...' : 'Confirm Appointment'}
+                    </button>
+                  </div>
+                )}
+              </form>
+            )}
+          </div>
         </div>
       </div>
     </div>
