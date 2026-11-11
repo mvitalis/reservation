@@ -31,17 +31,14 @@ export const AdminDashboard: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [copied, setCopied] = useState<boolean>(false);
-  
+
+  // Estado aislado para el tema del administrador (por defecto oscuro)
+  const [isAdminDark, setIsAdminDark] = useState<boolean>(true);
+
   const navigate = useNavigate();
   const shareableUrl = businessSlug ? `${window.location.origin}/book/${businessSlug}` : '';
 
-  // 👈 Asegurar que el Admin Dashboard fuerza siempre el tema claro y limpia estilos residuales al entrar
-  useEffect(() => {
-    const root = document.documentElement;
-    root.classList.remove('dark'); // Remueve el modo oscuro heredado de la vista pública si existiera
-  }, []);
-
-  // 1. Single initialization for Auth & Business Retrieval
+  // 1. Single initialization for Auth, Business Retrieval & Admin Theme
   useEffect(() => {
     const checkAuthAndFetchBusiness = async () => {
       const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -53,7 +50,7 @@ export const AdminDashboard: React.FC = () => {
 
       const { data, error } = await supabase
         .from('businesses')
-        .select('id, name, slug')
+        .select('id, name, slug, admin_theme')
         .eq('owner_id', user.id)
         .maybeSingle();
 
@@ -65,6 +62,15 @@ export const AdminDashboard: React.FC = () => {
         setBusinessId(data.id);
         setBusinessName(data.name);
         setBusinessSlug(data.slug);
+
+        // Si en Supabase existe admin_theme ('light' | 'dark' | 'system'), se aplica solo aquí
+        if (data.admin_theme === 'light') {
+          setIsAdminDark(false);
+        } else if (data.admin_theme === 'system') {
+          setIsAdminDark(window.matchMedia('(prefers-color-scheme: dark)').matches);
+        } else {
+          setIsAdminDark(true);
+        }
       } else {
         setBusinessName('ByteFix');
       }
@@ -140,12 +146,19 @@ export const AdminDashboard: React.FC = () => {
   );
 
   const getStatusBadge = (status: Booking['status']) => {
-    const styles = {
-      confirmed: 'bg-purple-100 text-purple-800 border-purple-200',
-      completed: 'bg-green-100 text-green-800 border-green-200',
-      cancelled: 'bg-red-100 text-red-800 border-red-200',
-      'no-show': 'bg-gray-100 text-gray-800 border-gray-200',
-    };
+    const styles = isAdminDark
+      ? {
+          confirmed: 'bg-purple-950/60 text-purple-300 border-purple-800',
+          completed: 'bg-green-950/60 text-green-300 border-green-800',
+          cancelled: 'bg-red-950/60 text-red-300 border-red-800',
+          'no-show': 'bg-slate-800 text-slate-300 border-slate-700',
+        }
+      : {
+          confirmed: 'bg-purple-100 text-purple-800 border-purple-200',
+          completed: 'bg-green-100 text-green-800 border-green-200',
+          cancelled: 'bg-red-100 text-red-800 border-red-200',
+          'no-show': 'bg-gray-100 text-gray-800 border-gray-200',
+        };
     return (
       <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${styles[status] || styles.confirmed}`}>
         {status ? status.toUpperCase() : 'CONFIRMED'}
@@ -154,18 +167,34 @@ export const AdminDashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 text-gray-900 p-6">
+    <div
+      className={`min-h-screen p-6 transition-colors ${
+        isAdminDark ? 'bg-slate-950 text-slate-100' : 'bg-gray-100 text-gray-900'
+      }`}
+    >
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header with Business Branding */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+        <div
+          className={`flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-6 rounded-xl shadow-sm border transition-colors ${
+            isAdminDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-gray-200'
+          }`}
+        >
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-purple-600 bg-purple-50 px-2 py-0.5 rounded">
+              <span
+                className={`text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded ${
+                  isAdminDark ? 'text-purple-300 bg-purple-950/70' : 'text-purple-600 bg-purple-50'
+                }`}
+              >
                 Business
               </span>
-              <h1 className="text-2xl font-bold text-gray-900">{businessName}</h1>
+              <h1 className={`text-2xl font-bold ${isAdminDark ? 'text-slate-100' : 'text-gray-900'}`}>
+                {businessName}
+              </h1>
             </div>
-            <p className="text-sm text-gray-500 mt-1">Manage appointments, locations, staff, and service offerings</p>
+            <p className={`text-sm mt-1 ${isAdminDark ? 'text-slate-400' : 'text-gray-500'}`}>
+              Manage appointments, locations, staff, and service offerings
+            </p>
           </div>
           <button
             onClick={fetchBookings}
@@ -176,10 +205,20 @@ export const AdminDashboard: React.FC = () => {
         </div>
 
         {/* Shareable Link Bar */}
-        <div className="bg-purple-50 border border-purple-200 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div
+          className={`border p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors ${
+            isAdminDark
+              ? 'bg-purple-950/30 border-purple-800/60'
+              : 'bg-purple-50 border-purple-200'
+          }`}
+        >
           <div>
-            <h3 className="text-sm font-semibold text-purple-900">Customer Shareable Booking Link</h3>
-            <p className="text-xs text-purple-700">{shareableUrl || 'Generating booking URL...'}</p>
+            <h3 className={`text-sm font-semibold ${isAdminDark ? 'text-purple-200' : 'text-purple-900'}`}>
+              Customer Shareable Booking Link
+            </h3>
+            <p className={`text-xs ${isAdminDark ? 'text-purple-300' : 'text-purple-700'}`}>
+              {shareableUrl || 'Generating booking URL...'}
+            </p>
           </div>
           <button
             onClick={handleCopy}
@@ -190,12 +229,20 @@ export const AdminDashboard: React.FC = () => {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex border-b border-gray-200 space-x-6 bg-white px-6 pt-3 rounded-t-xl shadow-sm overflow-x-auto">
+        <div
+          className={`flex border-b space-x-6 px-6 pt-3 rounded-t-xl shadow-sm overflow-x-auto transition-colors ${
+            isAdminDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-gray-200'
+          }`}
+        >
           <button
             onClick={() => setActiveTab('bookings')}
             className={`pb-3 font-semibold text-sm transition-colors border-b-2 whitespace-nowrap cursor-pointer ${
               activeTab === 'bookings'
-                ? 'border-purple-600 text-purple-600'
+                ? isAdminDark
+                  ? 'border-purple-500 text-purple-400'
+                  : 'border-purple-600 text-purple-600'
+                : isAdminDark
+                ? 'border-transparent text-slate-400 hover:text-slate-200'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
@@ -205,7 +252,11 @@ export const AdminDashboard: React.FC = () => {
             onClick={() => setActiveTab('services')}
             className={`pb-3 font-semibold text-sm transition-colors border-b-2 whitespace-nowrap cursor-pointer ${
               activeTab === 'services'
-                ? 'border-purple-600 text-purple-600'
+                ? isAdminDark
+                  ? 'border-purple-500 text-purple-400'
+                  : 'border-purple-600 text-purple-600'
+                : isAdminDark
+                ? 'border-transparent text-slate-400 hover:text-slate-200'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
@@ -215,7 +266,11 @@ export const AdminDashboard: React.FC = () => {
             onClick={() => setActiveTab('locations')}
             className={`pb-3 font-semibold text-sm transition-colors border-b-2 whitespace-nowrap cursor-pointer ${
               activeTab === 'locations'
-                ? 'border-purple-600 text-purple-600'
+                ? isAdminDark
+                  ? 'border-purple-500 text-purple-400'
+                  : 'border-purple-600 text-purple-600'
+                : isAdminDark
+                ? 'border-transparent text-slate-400 hover:text-slate-200'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
@@ -225,7 +280,11 @@ export const AdminDashboard: React.FC = () => {
             onClick={() => setActiveTab('staff')}
             className={`pb-3 font-semibold text-sm transition-colors border-b-2 whitespace-nowrap cursor-pointer ${
               activeTab === 'staff'
-                ? 'border-purple-600 text-purple-600'
+                ? isAdminDark
+                  ? 'border-purple-500 text-purple-400'
+                  : 'border-purple-600 text-purple-600'
+                : isAdminDark
+                ? 'border-transparent text-slate-400 hover:text-slate-200'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
@@ -237,23 +296,39 @@ export const AdminDashboard: React.FC = () => {
         {activeTab === 'bookings' && (
           <div className="space-y-6">
             {/* Filters Bar */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+            <div
+              className={`grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 rounded-xl shadow-sm border transition-colors ${
+                isAdminDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-gray-200'
+              }`}
+            >
               <div>
-                <label className="block text-xs font-semibold text-gray-600 uppercase mb-1">Filter by Date</label>
+                <label className={`block text-xs font-semibold uppercase mb-1 ${isAdminDark ? 'text-slate-400' : 'text-gray-600'}`}>
+                  Filter by Date
+                </label>
                 <input
                   type="date"
                   value={filterDate}
                   onChange={(e) => setFilterDate(e.target.value)}
-                  className="w-full p-2.5 border border-gray-300 rounded-lg text-sm"
+                  className={`w-full p-2.5 border rounded-lg text-sm ${
+                    isAdminDark
+                      ? 'bg-slate-800 border-slate-700 text-slate-100'
+                      : 'bg-white border-gray-300 text-gray-900'
+                  }`}
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-600 uppercase mb-1">Filter by Status</label>
+                <label className={`block text-xs font-semibold uppercase mb-1 ${isAdminDark ? 'text-slate-400' : 'text-gray-600'}`}>
+                  Filter by Status
+                </label>
                 <select
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
-                  className="w-full p-2.5 border border-gray-300 rounded-lg text-sm bg-white"
+                  className={`w-full p-2.5 border rounded-lg text-sm ${
+                    isAdminDark
+                      ? 'bg-slate-800 border-slate-700 text-slate-100'
+                      : 'bg-white border-gray-300 text-gray-900'
+                  }`}
                 >
                   <option value="all">All Statuses</option>
                   <option value="confirmed">Confirmed</option>
@@ -264,40 +339,63 @@ export const AdminDashboard: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-600 uppercase mb-1">Search Customer</label>
+                <label className={`block text-xs font-semibold uppercase mb-1 ${isAdminDark ? 'text-slate-400' : 'text-gray-600'}`}>
+                  Search Customer
+                </label>
                 <input
                   type="text"
                   placeholder="Name or Email..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full p-2.5 border border-gray-300 rounded-lg text-sm"
+                  className={`w-full p-2.5 border rounded-lg text-sm ${
+                    isAdminDark
+                      ? 'bg-slate-800 border-slate-700 text-slate-100 placeholder-slate-500'
+                      : 'bg-white border-gray-300 text-gray-900'
+                  }`}
                 />
               </div>
             </div>
 
             {/* Bookings Table */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div
+              className={`rounded-xl shadow-sm border overflow-hidden transition-colors ${
+                isAdminDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-gray-200'
+              }`}
+            >
               {loading ? (
                 <div className="p-8 space-y-4 animate-pulse">
                   {[...Array(3)].map((_, i) => (
-                    <div key={i} className="flex justify-between items-center py-4 border-b border-gray-100 last:border-0">
+                    <div
+                      key={i}
+                      className={`flex justify-between items-center py-4 border-b last:border-0 ${
+                        isAdminDark ? 'border-slate-800' : 'border-gray-100'
+                      }`}
+                    >
                       <div className="space-y-2 w-1/4">
-                        <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                        <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                        <div className={`h-4 rounded w-3/4 ${isAdminDark ? 'bg-slate-800' : 'bg-gray-200'}`}></div>
+                        <div className={`h-3 rounded w-1/2 ${isAdminDark ? 'bg-slate-800' : 'bg-gray-200'}`}></div>
                       </div>
-                      <div className="h-4 bg-gray-200 rounded w-1/5"></div>
-                      <div className="h-4 bg-gray-200 rounded w-1/6"></div>
-                      <div className="h-6 bg-gray-200 rounded-full w-16"></div>
+                      <div className={`h-4 rounded w-1/5 ${isAdminDark ? 'bg-slate-800' : 'bg-gray-200'}`}></div>
+                      <div className={`h-4 rounded w-1/6 ${isAdminDark ? 'bg-slate-800' : 'bg-gray-200'}`}></div>
+                      <div className={`h-6 rounded-full w-16 ${isAdminDark ? 'bg-slate-800' : 'bg-gray-200'}`}></div>
                     </div>
                   ))}
                 </div>
               ) : filteredBookings.length === 0 ? (
-                <div className="p-8 text-center text-gray-500">No bookings found for the selected criteria.</div>
+                <div className={`p-8 text-center ${isAdminDark ? 'text-slate-400' : 'text-gray-500'}`}>
+                  No bookings found for the selected criteria.
+                </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      <tr
+                        className={`border-b text-xs font-semibold uppercase tracking-wider ${
+                          isAdminDark
+                            ? 'bg-slate-800/60 border-slate-800 text-slate-400'
+                            : 'bg-gray-50 border-gray-200 text-gray-500'
+                        }`}
+                      >
                         <th className="p-4">Customer</th>
                         <th className="p-4">Service</th>
                         <th className="p-4">Date & Time</th>
@@ -305,29 +403,46 @@ export const AdminDashboard: React.FC = () => {
                         <th className="p-4 text-right">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-200 text-sm">
+                    <tbody
+                      className={`divide-y text-sm ${
+                        isAdminDark ? 'divide-slate-800' : 'divide-gray-200'
+                      }`}
+                    >
                       {filteredBookings.map((b) => (
-                        <tr key={b.id} className="hover:bg-gray-50 transition-colors">
+                        <tr
+                          key={b.id}
+                          className={`transition-colors ${
+                            isAdminDark ? 'hover:bg-slate-800/40' : 'hover:bg-gray-50'
+                          }`}
+                        >
                           <td className="p-4">
-                            <div className="font-semibold text-gray-900">{b.customer_name}</div>
-                            <div className="text-xs text-gray-500">{b.customer_email}</div>
-                            <div className="text-xs text-gray-500">{b.customer_phone}</div>
+                            <div className={`font-semibold ${isAdminDark ? 'text-slate-100' : 'text-gray-900'}`}>
+                              {b.customer_name}
+                            </div>
+                            <div className={`text-xs ${isAdminDark ? 'text-slate-400' : 'text-gray-500'}`}>
+                              {b.customer_email}
+                            </div>
+                            <div className={`text-xs ${isAdminDark ? 'text-slate-400' : 'text-gray-500'}`}>
+                              {b.customer_phone}
+                            </div>
                           </td>
                           <td className="p-4">
-                            <div className="font-medium text-gray-800">{b.services?.name || 'Service'}</div>
-                            <div className="text-xs text-gray-500">
+                            <div className={`font-medium ${isAdminDark ? 'text-slate-200' : 'text-gray-800'}`}>
+                              {b.services?.name || 'Service'}
+                            </div>
+                            <div className={`text-xs ${isAdminDark ? 'text-slate-400' : 'text-gray-500'}`}>
                               ${b.services?.price} ({b.services?.duration_minutes} mins)
                             </div>
                           </td>
                           <td className="p-4">
-                            <div className="font-medium text-gray-900">
+                            <div className={`font-medium ${isAdminDark ? 'text-slate-100' : 'text-gray-900'}`}>
                               {new Date(b.booking_start).toLocaleDateString([], {
                                 month: 'short',
                                 day: 'numeric',
                                 year: 'numeric',
                               })}
                             </div>
-                            <div className="text-xs text-gray-500">
+                            <div className={`text-xs ${isAdminDark ? 'text-slate-400' : 'text-gray-500'}`}>
                               {new Date(b.booking_start).toLocaleTimeString([], {
                                 hour: '2-digit',
                                 minute: '2-digit',
@@ -339,7 +454,11 @@ export const AdminDashboard: React.FC = () => {
                             <select
                               value={b.status || 'confirmed'}
                               onChange={(e) => handleStatusChange(b.id, e.target.value)}
-                              className="p-1.5 text-xs border border-gray-300 rounded-md bg-white shadow-sm font-medium"
+                              className={`p-1.5 text-xs border rounded-md shadow-sm font-medium ${
+                                isAdminDark
+                                  ? 'bg-slate-800 border-slate-700 text-slate-200'
+                                  : 'bg-white border-gray-300 text-gray-800'
+                              }`}
                             >
                               <option value="confirmed">Confirmed</option>
                               <option value="completed">Completed</option>
