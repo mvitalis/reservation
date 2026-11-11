@@ -1,10 +1,8 @@
 {
-  "version": 2,
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/[...slug]" },
-    { "source": "/book/:slug", "destination": "/client/reservation-frontend/dist/index.html" },
-    { "source": "/admin", "destination": "/client/reservation-frontend/dist/index.html" },
-    { "source": "/login", "destination": "/client/reservation-frontend/dist/index.html" },
-    { "source": "/(.*)", "destination": "/client/reservation-frontend/dist/$1" }
-  ]
+"rewrites" : [
+{
+"source" : "/(.*)" ,
+"destination" : "/index.html"
+}
+]
 }
