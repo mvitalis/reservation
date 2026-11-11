@@ -35,6 +35,12 @@ export const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
   const shareableUrl = businessSlug ? `${window.location.origin}/book/${businessSlug}` : '';
 
+  // 👈 Asegurar que el Admin Dashboard fuerza siempre el tema claro y limpia estilos residuales al entrar
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.remove('dark'); // Remueve el modo oscuro heredado de la vista pública si existiera
+  }, []);
+
   // 1. Single initialization for Auth & Business Retrieval
   useEffect(() => {
     const checkAuthAndFetchBusiness = async () => {
@@ -148,7 +154,7 @@ export const AdminDashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
+    <div className="min-h-screen bg-gray-100 text-gray-900 p-6">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header with Business Branding */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-6 rounded-xl shadow-sm border border-gray-200">

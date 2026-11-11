@@ -42,7 +42,7 @@ interface BusinessInfo {
   header_image_url?: string;
   primary_color?: string;
   business_hours?: BusinessHours;
-  public_theme?: 'light' | 'dark' | 'system'; // 👈 Añadido campo de tema público
+  public_theme?: 'light' | 'dark' | 'system';
 }
 
 interface ExistingBooking {
@@ -112,7 +112,7 @@ export const PublicBookingView: React.FC = () => {
   const turnstileRef = useRef<TurnstileInstance>(null);
   const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || import.meta.env.REACT_APP_TURNSTILE_SITE_KEY || '1x00000000000000000000AA';
 
-  // 👈 Aplicar el tema público configurado por el negocio
+  // 👈 Aplicar el tema público y limpiar al desmontar para evitar que afecte al Dashboard
   useEffect(() => {
     const root = document.documentElement;
     const theme = businessInfo.public_theme || 'light';
@@ -136,7 +136,12 @@ export const PublicBookingView: React.FC = () => {
     };
 
     mediaQuery.addEventListener('change', handleSystemChange);
-    return () => mediaQuery.removeEventListener('change', handleSystemChange);
+
+    // FUNCIÓN DE LIMPIEZA AL SALIR DE LA VISTA PÚBLICA
+    return () => {
+      mediaQuery.removeEventListener('change', handleSystemChange);
+      root.classList.remove('dark'); // Remueve el modo oscuro al volver al Admin Dashboard
+    };
   }, [businessInfo.public_theme]);
 
   // Fetch Business, Custom Branding, Working Hours, and Public Theme
