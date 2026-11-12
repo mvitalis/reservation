@@ -5,38 +5,47 @@ export type Theme = 'light' | 'dark' | 'system';
 
 export const ThemeToggle: React.FC = () => {
   const [theme, setTheme] = useState<Theme>(() => {
-    return (localStorage.getItem('theme') as Theme) || 'system';
+    return (localStorage.getItem('admin_theme') as Theme) || 'system';
   });
+  const [businessId, setBusinessId] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // 1. Load initial theme preference from Supabase on mount
+  // 1. Cargar la preferencia de tema del negocio desde Supabase al montar
   useEffect(() => {
-    const fetchUserTheme = async () => {
+    const fetchBusinessTheme = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('theme_preference')
-            .eq('id', user.id)
-            .maybeSingle();
+        if (!user) return;
 
-          if (profile?.theme_preference) {
-            const savedTheme = profile.theme_preference as Theme;
+        const { data: business, error } = await supabase
+          .from('businesses')
+          .select('id, admin_theme')
+          .eq('owner_id', user.id)
+          .maybeSingle();
+
+        if (error) {
+          console.error('Error fetching business admin_theme:', error.message);
+          return;
+        }
+
+        if (business) {
+          setBusinessId(business.id);
+          if (business.admin_theme) {
+            const savedTheme = business.admin_theme as Theme;
             setTheme(savedTheme);
-            localStorage.setItem('theme', savedTheme);
+            localStorage.setItem('admin_theme', savedTheme);
           }
         }
       } catch (err) {
-        console.error('Error fetching theme preference from Supabase:', err);
+        console.error('Error loading admin theme from Supabase:', err);
       }
     };
 
-    fetchUserTheme();
+    fetchBusinessTheme();
   }, []);
 
-  // Synchronize document classes with active theme setting & save to Supabase
+  // 2. Sincronizar las clases globales (<html>) del dashboard con el tema activo
   useEffect(() => {
     const root = document.documentElement;
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -54,26 +63,8 @@ export const ThemeToggle: React.FC = () => {
     };
 
     applyTheme(theme);
-    localStorage.setItem('theme', theme);
+    localStorage.setItem('admin_theme', theme);
 
-    // Save preference to Supabase profile if user is logged in
-    const saveThemeToSupabase = async (selectedTheme: Theme) => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          await supabase
-            .from('profiles')
-            .update({ theme_preference: selectedTheme })
-            .eq('id', user.id);
-        }
-      } catch (err) {
-        console.error('Error saving theme preference to Supabase:', err);
-      }
-    };
-
-    saveThemeToSupabase(theme);
-
-    // Listen to system preference changes when set to 'system'
     const handleSystemChange = () => {
       if (theme === 'system') {
         applyTheme('system');
@@ -84,7 +75,38 @@ export const ThemeToggle: React.FC = () => {
     return () => mediaQuery.removeEventListener('change', handleSystemChange);
   }, [theme]);
 
-  // Close dropdown on outside click
+  // 3. Guardar el cambio explícitamente en la tabla `businesses` cuando el usuario selecciona una opción
+  const handleSelectTheme = async (newTheme: Theme) => {
+    setTheme(newTheme);
+    setIsOpen(false);
+    localStorage.setItem('admin_theme', newTheme);
+
+    try {
+      if (businessId) {
+        const { error } = await supabase
+          .from('businesses')
+          .update({ admin_theme: newTheme })
+          .eq('id', businessId);
+
+        if (error) throw error;
+      } else {
+        // Respaldo en caso de que aún no se haya resuelto businessId en el estado
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { error } = await supabase
+            .from('businesses')
+            .update({ admin_theme: newTheme })
+            .eq('owner_id', user.id);
+
+          if (error) throw error;
+        }
+      }
+    } catch (err) {
+      console.error('Error saving admin_theme to Supabase:', err);
+    }
+  };
+
+  // Cerrar el menú desplegable al hacer clic afuera
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -108,7 +130,7 @@ export const ThemeToggle: React.FC = () => {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="px-3 py-1 rounded bg-purple-800 text-white hover:bg-purple-700 transition-colors flex items-center gap-1.5 text-xs font-medium focus:outline-none cursor-pointer"
+        className="px-3 py-1.5 rounded-lg bg-purple-800 text-white hover:bg-purple-700 transition-colors flex items-center gap-1.5 text-xs font-medium focus:outline-none cursor-pointer shadow-sm"
       >
         <span>{currentOption.icon}</span>
         <span className="capitalize">{currentOption.label}</span>
@@ -118,19 +140,16 @@ export const ThemeToggle: React.FC = () => {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-32 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg py-1 z-50">
+        <div className="absolute right-0 mt-2 w-32 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-md shadow-lg py-1 z-50">
           {options.map((opt) => (
             <button
               key={opt.value}
               type="button"
-              onClick={() => {
-                setTheme(opt.value);
-                setIsOpen(false);
-              }}
+              onClick={() => handleSelectTheme(opt.value)}
               className={`w-full text-left px-3 py-1.5 text-xs flex items-center gap-2 transition-colors cursor-pointer ${
                 theme === opt.value
                   ? 'bg-purple-100 dark:bg-purple-900/50 text-purple-900 dark:text-purple-200 font-semibold'
-                  : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  : 'text-gray-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700'
               }`}
             >
               <span>{opt.icon}</span>
