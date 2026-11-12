@@ -5,13 +5,13 @@ export type Theme = 'light' | 'dark' | 'system';
 
 export const ThemeToggle: React.FC = () => {
   const [theme, setTheme] = useState<Theme>(() => {
-    return (localStorage.getItem('admin_theme') as Theme) || 'system';
+    return (localStorage.getItem('admin_theme') as Theme) || 'light';
   });
   const [businessId, setBusinessId] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // 1. Cargar la preferencia de tema del negocio desde Supabase inmediatamente al montar
+  // 1. Cargar la preferencia de tema del negocio desde Supabase al montar
   useEffect(() => {
     let isMounted = true;
 
@@ -33,7 +33,6 @@ export const ThemeToggle: React.FC = () => {
 
         if (business && isMounted) {
           setBusinessId(business.id);
-          // Si existe un tema guardado en la BD, lo aplicamos de inmediato
           if (business.admin_theme) {
             const savedTheme = business.admin_theme as Theme;
             setTheme(savedTheme);
@@ -52,7 +51,7 @@ export const ThemeToggle: React.FC = () => {
     };
   }, []);
 
-  // 2. Sincronizar clases globales (<html>) con el tema activo
+  // 2. Sincronizar clases globales (<html>) con el tema activo de manera robusta
   useEffect(() => {
     const root = document.documentElement;
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -82,11 +81,22 @@ export const ThemeToggle: React.FC = () => {
     return () => mediaQuery.removeEventListener('change', handleSystemChange);
   }, [theme]);
 
-  // 3. Guardar el cambio en Supabase
+  // 3. Guardar el cambio en Supabase y actualizar el DOM de inmediato
   const handleSelectTheme = async (newTheme: Theme) => {
     setTheme(newTheme);
     setIsOpen(false);
     localStorage.setItem('admin_theme', newTheme);
+
+    // Aplicar inmediatamente al DOM
+    const root = document.documentElement;
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const isDark = newTheme === 'dark' || (newTheme === 'system' && mediaQuery.matches);
+    
+    if (isDark) {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
 
     try {
       if (businessId) {
