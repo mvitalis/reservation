@@ -32,7 +32,7 @@ export const AdminDashboard: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [copied, setCopied] = useState<boolean>(false);
 
-  // Estado interno para saber si el admin está en modo oscuro (sincronizado con la BD o localStorage)
+  // Estado del tema sincronizado con localStorage
   const [isAdminDark, setIsAdminDark] = useState<boolean>(() => {
     return localStorage.getItem('admin_theme') === 'dark';
   });
@@ -40,7 +40,7 @@ export const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
   const shareableUrl = businessSlug ? `${window.location.origin}/book/${businessSlug}` : '';
 
-  // 1. Cargar el tema de administración desde Supabase y aplicarlo silenciosamente
+  // 1. Cargar el tema de administración desde Supabase al iniciar
   useEffect(() => {
     const checkAuthAndFetchBusiness = async () => {
       const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -65,7 +65,6 @@ export const AdminDashboard: React.FC = () => {
         setBusinessName(data.name);
         setBusinessSlug(data.slug);
 
-        // Aplicar el tema configurado en la base de datos de manera automática
         if (data.admin_theme) {
           const isDark = data.admin_theme === 'dark';
           setIsAdminDark(isDark);
@@ -84,6 +83,32 @@ export const AdminDashboard: React.FC = () => {
 
     checkAuthAndFetchBusiness();
   }, [navigate]);
+
+  // 👈 Función para alternar el tema y guardarlo de inmediato en Supabase y localStorage
+  const handleToggleTheme = async () => {
+    const newThemeState = !isAdminDark;
+    const themeString = newThemeState ? 'dark' : 'light';
+    
+    setIsAdminDark(newThemeState);
+    localStorage.setItem('admin_theme', themeString);
+
+    if (newThemeState) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+
+    if (!businessId) return;
+
+    try {
+      await supabase
+        .from('businesses')
+        .update({ admin_theme: themeString })
+        .eq('id', businessId);
+    } catch (err) {
+      console.error('Error updating theme in database:', err);
+    }
+  };
 
   // 2. Fetch Bookings for Business
   const fetchBookings = useCallback(async () => {
@@ -175,7 +200,7 @@ export const AdminDashboard: React.FC = () => {
   return (
     <div className={`min-h-screen p-6 transition-colors ${isAdminDark ? 'bg-slate-950 text-slate-100' : 'bg-gray-100 text-gray-900'}`}>
       <div className="max-w-6xl mx-auto space-y-6">
-        {/* Header with Business Branding (Sin Toggle Visual) */}
+        {/* Header with Business Branding & Minimalist Theme Icon */}
         <div className={`flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-6 rounded-xl shadow-sm border transition-colors ${isAdminDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-gray-200'}`}>
           <div>
             <div className="flex items-center gap-2">
@@ -187,12 +212,31 @@ export const AdminDashboard: React.FC = () => {
             <p className={`text-sm mt-1 ${isAdminDark ? 'text-slate-400' : 'text-gray-500'}`}>Manage appointments, locations, staff, and service offerings</p>
           </div>
 
-          <button
-            onClick={fetchBookings}
-            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium text-sm rounded-lg transition-colors shadow-sm self-start md:self-auto cursor-pointer"
-          >
-            Refresh Data
-          </button>
+          <div className="flex items-center gap-3">
+            {/* 👈 Botón de ícono minimalista para alternar y guardar el tema */}
+            <button
+              onClick={handleToggleTheme}
+              title={isAdminDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              className={`p-2.5 rounded-lg border transition-colors cursor-pointer flex items-center justify-center ${
+                isAdminDark 
+                  ? 'bg-slate-800 border-slate-700 text-amber-400 hover:bg-slate-700' 
+                  : 'bg-gray-50 border-gray-200 text-purple-700 hover:bg-gray-100'
+              }`}
+            >
+              {isAdminDark ? (
+                <span className="text-sm">☀️</span>
+              ) : (
+                <span className="text-sm">🌙</span>
+              )}
+            </button>
+
+            <button
+              onClick={fetchBookings}
+              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium text-sm rounded-lg transition-colors shadow-sm self-start md:self-auto cursor-pointer"
+            >
+              Refresh Data
+            </button>
+          </div>
         </div>
 
         {/* Shareable Link Bar */}
