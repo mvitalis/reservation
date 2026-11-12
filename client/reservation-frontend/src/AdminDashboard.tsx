@@ -4,7 +4,6 @@ import { supabase } from './supabaseClient';
 import { ServiceManager } from './ServiceManager';
 import { LocationManager } from './LocationManager';
 import { StaffManager } from './StaffManager';
-import { ThemeToggle } from './ThemeToggle';
 
 interface Booking {
   id: string;
@@ -36,7 +35,7 @@ export const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
   const shareableUrl = businessSlug ? `${window.location.origin}/book/${businessSlug}` : '';
 
-  // 1. Cargar el negocio y aplicar el tema inicial en el DOM
+  // 1. Cargar el negocio y aplicar automáticamente el tema guardado en Supabase (sin botones en pantalla)
   useEffect(() => {
     const checkAuthAndFetchBusiness = async () => {
       const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -61,11 +60,13 @@ export const AdminDashboard: React.FC = () => {
         setBusinessName(data.name);
         setBusinessSlug(data.slug);
 
+        // Aplicar de forma silenciosa el tema guardado en la base de datos
+        const root = document.documentElement;
         if (data.admin_theme === 'dark') {
-          document.documentElement.classList.add('dark');
+          root.classList.add('dark');
           localStorage.setItem('admin_theme', 'dark');
-        } else if (data.admin_theme === 'light') {
-          document.documentElement.classList.remove('dark');
+        } else {
+          root.classList.remove('dark');
           localStorage.setItem('admin_theme', 'light');
         }
       } else {
@@ -159,7 +160,7 @@ export const AdminDashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-slate-950 text-gray-900 dark:text-slate-100 p-6 transition-colors">
       <div className="max-w-6xl mx-auto space-y-6">
-        {/* Header with Business Branding & Theme Toggle */}
+        {/* Header with Business Branding (Sin Toggle Visual) */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-slate-800 transition-colors">
           <div>
             <div className="flex items-center gap-2">
@@ -171,15 +172,12 @@ export const AdminDashboard: React.FC = () => {
             <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">Manage appointments, locations, staff, and service offerings</p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <ThemeToggle />
-            <button
-              onClick={fetchBookings}
-              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium text-sm rounded-lg transition-colors shadow-sm cursor-pointer"
-            >
-              Refresh Data
-            </button>
-          </div>
+          <button
+            onClick={fetchBookings}
+            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium text-sm rounded-lg transition-colors shadow-sm self-start md:self-auto cursor-pointer"
+          >
+            Refresh Data
+          </button>
         </div>
 
         {/* Shareable Link Bar */}
