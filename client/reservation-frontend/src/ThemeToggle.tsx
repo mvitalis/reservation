@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { supabase } from './supabaseClient'; // 👈 Asegúrate de que la ruta a tu cliente supabase sea correcta
+import { supabase } from './supabaseClient';
 
 export type Theme = 'light' | 'dark' | 'system';
 
@@ -11,8 +11,10 @@ export const ThemeToggle: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // 1. Cargar la preferencia de tema del negocio desde Supabase al montar
+  // 1. Cargar la preferencia de tema del negocio desde Supabase inmediatamente al montar
   useEffect(() => {
+    let isMounted = true;
+
     const fetchBusinessTheme = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
@@ -29,8 +31,9 @@ export const ThemeToggle: React.FC = () => {
           return;
         }
 
-        if (business) {
+        if (business && isMounted) {
           setBusinessId(business.id);
+          // Si existe un tema guardado en la BD, lo aplicamos de inmediato
           if (business.admin_theme) {
             const savedTheme = business.admin_theme as Theme;
             setTheme(savedTheme);
@@ -43,9 +46,13 @@ export const ThemeToggle: React.FC = () => {
     };
 
     fetchBusinessTheme();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  // 2. Sincronizar las clases globales (<html>) del dashboard con el tema activo
+  // 2. Sincronizar clases globales (<html>) con el tema activo
   useEffect(() => {
     const root = document.documentElement;
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -75,7 +82,7 @@ export const ThemeToggle: React.FC = () => {
     return () => mediaQuery.removeEventListener('change', handleSystemChange);
   }, [theme]);
 
-  // 3. Guardar el cambio explícitamente en la tabla `businesses` cuando el usuario selecciona una opción
+  // 3. Guardar el cambio en Supabase
   const handleSelectTheme = async (newTheme: Theme) => {
     setTheme(newTheme);
     setIsOpen(false);
@@ -83,22 +90,17 @@ export const ThemeToggle: React.FC = () => {
 
     try {
       if (businessId) {
-        const { error } = await supabase
+        await supabase
           .from('businesses')
           .update({ admin_theme: newTheme })
           .eq('id', businessId);
-
-        if (error) throw error;
       } else {
-        // Respaldo en caso de que aún no se haya resuelto businessId en el estado
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          const { error } = await supabase
+          await supabase
             .from('businesses')
             .update({ admin_theme: newTheme })
             .eq('owner_id', user.id);
-
-          if (error) throw error;
         }
       }
     } catch (err) {
@@ -106,7 +108,7 @@ export const ThemeToggle: React.FC = () => {
     }
   };
 
-  // Cerrar el menú desplegable al hacer clic afuera
+  // Cerrar dropdown al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
