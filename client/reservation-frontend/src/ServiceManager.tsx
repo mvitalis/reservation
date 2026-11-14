@@ -200,7 +200,7 @@ export const ServiceManager: React.FC = () => {
       {/* Form Section */}
       <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">
+          <h2 className="text-xl font-extrabold text-slate-900 dark:text-slate-100">
             {editingId ? 'Edit Service' : 'Add New Service'}
           </h2>
           <span className="text-xs font-semibold px-3 py-1 bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300 rounded-full border border-purple-200 dark:border-purple-800">
