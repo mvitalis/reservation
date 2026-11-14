@@ -43,10 +43,12 @@ export const StaffManager: React.FC = () => {
   useEffect(() => {
     const fetchBusinessAndTier = async () => {
       try {
+        setLoading(true);
         const { data: { user }, error: authError } = await supabase.auth.getUser();
 
         if (authError || !user) {
           console.error('User not authenticated:', authError);
+          setErrorMessage('User not authenticated. Please log in again.');
           setLoading(false);
           return;
         }
@@ -85,9 +87,12 @@ export const StaffManager: React.FC = () => {
           if (locData && locData.length > 0) {
             setFormData((prev) => ({ ...prev, locationId: locData[0].id }));
           }
+        } else {
+          setErrorMessage('No business profile found for this user.');
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error loading business & location details:', err);
+        setErrorMessage(err.message || 'Failed to load business details.');
       } finally {
         setLoading(false);
       }
@@ -100,7 +105,6 @@ export const StaffManager: React.FC = () => {
   const fetchStaff = useCallback(async () => {
     if (!businessId) return;
 
-    setLoading(true);
     try {
       const { data, error } = await supabase
         .from('staff')
@@ -113,8 +117,6 @@ export const StaffManager: React.FC = () => {
     } catch (err: any) {
       console.error('Failed to fetch staff members:', err);
       setErrorMessage(err.message || 'Failed to load staff members.');
-    } finally {
-      setLoading(false);
     }
   }, [businessId]);
 
@@ -149,8 +151,9 @@ export const StaffManager: React.FC = () => {
     e.preventDefault();
     setErrorMessage(null);
 
+    // Validación estricta para evitar inserciones con RLS violado por falta de ID
     if (!businessId) {
-      setErrorMessage('Unable to save staff member: Missing Business ID.');
+      setErrorMessage('Unable to save staff member: Business ID is still loading. Please wait.');
       return;
     }
 
@@ -176,7 +179,7 @@ export const StaffManager: React.FC = () => {
 
         if (error) throw error;
       } else {
-        // Create New Staff Member
+        // Create New Staff Member asegurando el business_id
         const { error } = await supabase.from('staff').insert([
           {
             business_id: businessId,
@@ -190,7 +193,7 @@ export const StaffManager: React.FC = () => {
         if (error) throw error;
       }
 
-      fetchStaff();
+      await fetchStaff();
       handleCancel();
     } catch (err: any) {
       console.error('Error saving staff member:', err);
@@ -202,6 +205,7 @@ export const StaffManager: React.FC = () => {
 
   // Toggle Active Status
   const handleToggleActive = async (id: string, currentStatus: boolean) => {
+    if (!businessId) return;
     try {
       const { error } = await supabase
         .from('staff')
@@ -216,11 +220,13 @@ export const StaffManager: React.FC = () => {
       );
     } catch (err: any) {
       console.error('Error toggling staff status:', err);
+      setErrorMessage(err.message);
     }
   };
 
   // Delete Staff Member
   const handleDelete = async (id: string) => {
+    if (!businessId) return;
     if (!confirm('Are you sure you want to delete this staff member?')) return;
 
     try {
@@ -267,7 +273,9 @@ export const StaffManager: React.FC = () => {
           </div>
         )}
 
-        {locations.length === 0 ? (
+        {loading ? (
+          <div className="p-4 text-sm text-slate-500 animate-pulse">Loading configuration...</div>
+        ) : locations.length === 0 ? (
           <div className="p-4 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-sm rounded-lg">
             Please configure at least one active branch location in <strong>Location Management</strong> before adding staff members.
           </div>
@@ -280,9 +288,10 @@ export const StaffManager: React.FC = () => {
               <input
                 type="text"
                 required
+                disabled={!businessId || saving}
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full p-2.5 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder-slate-400"
+                className="w-full p-2.5 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder-slate-400 disabled:opacity-50"
                 placeholder="e.g. Alex Morgan"
               />
             </div>
@@ -293,9 +302,10 @@ export const StaffManager: React.FC = () => {
               </label>
               <input
                 type="email"
+                disabled={!businessId || saving}
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full p-2.5 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder-slate-400"
+                className="w-full p-2.5 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder-slate-400 disabled:opacity-50"
                 placeholder="alex@example.com"
               />
             </div>
@@ -306,9 +316,10 @@ export const StaffManager: React.FC = () => {
               </label>
               <select
                 required
+                disabled={!businessId || saving}
                 value={formData.locationId}
                 onChange={(e) => setFormData({ ...formData, locationId: e.target.value })}
-                className="w-full p-2.5 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
+                className="w-full p-2.5 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 disabled:opacity-50"
               >
                 <option value="">-- Select Branch --</option>
                 {locations.map((loc) => (
@@ -322,7 +333,7 @@ export const StaffManager: React.FC = () => {
             <div className="md:col-span-2 flex gap-3 mt-2">
               <button
                 type="submit"
-                disabled={saving}
+                disabled={!businessId || saving}
                 className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-medium text-sm rounded-lg shadow-sm transition-colors cursor-pointer"
               >
                 {saving ? 'Saving...' : editingId ? 'Update Staff Member' : 'Add Staff Member'}
@@ -331,6 +342,7 @@ export const StaffManager: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleCancel}
+                  disabled={saving}
                   className="px-5 py-2.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-medium text-sm rounded-lg transition-colors cursor-pointer"
                 >
                   Cancel
