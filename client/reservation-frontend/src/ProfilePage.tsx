@@ -60,7 +60,7 @@ interface UserProfileData {
   logoUrl: string;
   headerImageUrl: string;
   primaryColor: string;
-  publicTheme: 'light' | 'dark' | 'system'; // 👈 Nuevo campo para el tema público
+  publicTheme: 'light' | 'dark' | 'system';
 }
 
 export const ProfilePage: React.FC = () => {
@@ -80,8 +80,8 @@ export const ProfilePage: React.FC = () => {
     businessHours: DEFAULT_HOURS,
     logoUrl: '',
     headerImageUrl: '',
-    primaryColor: '#7e22ce', // Default purple accent
-    publicTheme: 'light', // 👈 Valor por defecto
+    primaryColor: '#7e22ce',
+    publicTheme: 'light',
   });
 
   // Password State
@@ -135,7 +135,7 @@ export const ProfilePage: React.FC = () => {
           logoUrl: business?.logo_url || '',
           headerImageUrl: business?.header_image_url || '',
           primaryColor: business?.primary_color || '#7e22ce',
-          publicTheme: business?.public_theme || 'light', // 👈 Cargar de la base de datos
+          publicTheme: business?.public_theme || 'light',
         });
       } catch (err) {
         console.error('Unexpected error loading profile:', err);
@@ -200,7 +200,7 @@ export const ProfilePage: React.FC = () => {
           logo_url: profile.logoUrl || null,
           header_image_url: profile.headerImageUrl || null,
           primary_color: profile.primaryColor,
-          public_theme: profile.publicTheme, // 👈 Guardar el tema público
+          public_theme: profile.publicTheme,
         }, { onConflict: 'owner_id' });
 
       if (error) throw error;
@@ -291,8 +291,8 @@ export const ProfilePage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="flex items-center gap-3 text-gray-500 font-medium">
+      <div className="min-h-screen bg-gray-50 dark:bg-slate-950 flex items-center justify-center p-4">
+        <div className="flex items-center gap-3 text-gray-500 dark:text-slate-400 font-medium">
           <div className="w-5 h-5 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
           <span>Loading settings...</span>
         </div>
@@ -301,19 +301,19 @@ export const ProfilePage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6">
-      <div className="max-w-3xl mx-auto space-y-8 font-sans">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 py-10 px-4 sm:px-6 text-slate-900 dark:text-slate-100 font-sans">
+      <div className="max-w-3xl mx-auto space-y-8">
         
         {/* Page Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700">
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-purple-600 bg-purple-50 px-2 py-0.5 rounded">
+              <span className="text-xs font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/60 px-2 py-0.5 rounded border border-purple-200 dark:border-purple-800">
                 Account Management
               </span>
-              <h1 className="text-2xl font-bold text-gray-900">Account & Settings</h1>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Account & Settings</h1>
             </div>
-            <p className="text-sm text-gray-500 mt-1">Manage your business information, page customization, operating hours, and security.</p>
+            <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">Manage your business information, page customization, operating hours, and security.</p>
           </div>
         </div>
 
@@ -322,28 +322,28 @@ export const ProfilePage: React.FC = () => {
           <div
             className={`p-4 rounded-xl flex items-center gap-3 text-sm font-medium ${
               message.type === 'success'
-                ? 'bg-green-50 border border-green-200 text-green-800'
-                : 'bg-red-50 border border-red-200 text-red-800'
+                ? 'bg-green-50 dark:bg-green-950/60 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300'
+                : 'bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300'
             }`}
           >
             {message.type === 'success' ? (
-              <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0" />
+              <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 shrink-0" />
             ) : (
-              <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
+              <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0" />
             )}
             <span>{message.text}</span>
           </div>
         )}
 
         {/* SECTION 1: Read-Only Account Identity */}
-        <div className="bg-white p-6 sm:p-8 rounded-xl shadow-md border border-gray-100 space-y-4">
-          <div className="flex items-center gap-2 pb-3 border-b border-gray-100">
-            <ShieldAlert className="w-5 h-5 text-purple-600" />
-            <h2 className="text-lg font-bold text-gray-800">Login Identity</h2>
+        <div className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-xl shadow-md border border-gray-100 dark:border-slate-700 space-y-4">
+          <div className="flex items-center gap-2 pb-3 border-b border-gray-100 dark:border-slate-700">
+            <ShieldAlert className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+            <h2 className="text-lg font-bold text-gray-800 dark:text-slate-100">Login Identity</h2>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+            <label className="block text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide mb-1">
               Account Email / Username
             </label>
             <div className="relative">
@@ -351,24 +351,24 @@ export const ProfilePage: React.FC = () => {
                 type="email"
                 value={profile.usernameEmail}
                 disabled
-                className="w-full p-3 pl-10 border border-gray-200 bg-gray-100 text-gray-500 rounded-lg cursor-not-allowed select-none font-medium"
+                className="w-full p-3 pl-10 border border-gray-200 dark:border-slate-700 bg-gray-100 dark:bg-slate-900 text-gray-500 dark:text-slate-400 rounded-lg cursor-not-allowed select-none font-medium"
               />
-              <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-3.5" />
+              <Lock className="w-4 h-4 text-gray-400 dark:text-slate-500 absolute left-3 top-3.5" />
             </div>
-            <p className="text-xs text-gray-400 mt-1.5">
+            <p className="text-xs text-gray-400 dark:text-slate-500 mt-1.5">
               Your primary login email cannot be changed. To receive booking alerts at a different address, update your Notification Email below.
             </p>
           </div>
         </div>
 
         {/* SECTION 2: Subscription & Plan Management */}
-        <div className="bg-white p-6 sm:p-8 rounded-xl shadow-md border border-gray-100 space-y-6">
-          <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+        <div className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-xl shadow-md border border-gray-100 dark:border-slate-700 space-y-6">
+          <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-slate-700">
             <div className="flex items-center gap-2">
-              <CreditCard className="w-5 h-5 text-purple-600" />
-              <h2 className="text-lg font-bold text-gray-800">Subscription Plan</h2>
+              <CreditCard className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+              <h2 className="text-lg font-bold text-gray-800 dark:text-slate-100">Subscription Plan</h2>
             </div>
-            <span className="text-xs font-bold uppercase tracking-wider bg-purple-100 text-purple-700 px-3 py-1 rounded-full">
+            <span className="text-xs font-bold uppercase tracking-wider bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300 px-3 py-1 rounded-full border border-purple-200 dark:border-purple-800">
               Current Plan: {profile.selectedPackage}
             </span>
           </div>
@@ -378,28 +378,28 @@ export const ProfilePage: React.FC = () => {
             <div
               className={`p-4 rounded-xl border-2 transition-all ${
                 profile.selectedPackage === 'starter'
-                  ? 'border-purple-600 bg-purple-50/40 shadow-sm'
-                  : 'border-gray-200 bg-white'
+                  ? 'border-purple-600 bg-purple-50/40 dark:bg-purple-950/40 shadow-sm'
+                  : 'border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900'
               }`}
             >
               <div className="flex justify-between items-center mb-1">
-                <h3 className="font-bold text-gray-900">Starter</h3>
-                <span className="text-xs font-semibold text-gray-500">$0/mo</span>
+                <h3 className="font-bold text-gray-900 dark:text-slate-100">Starter</h3>
+                <span className="text-xs font-semibold text-gray-500 dark:text-slate-400">$0/mo</span>
               </div>
-              <p className="text-xs text-gray-500 mb-4">Basic scheduling for 1 user.</p>
+              <p className="text-xs text-gray-500 dark:text-slate-400 mb-4">Basic scheduling for 1 user.</p>
               
               {profile.selectedPackage === 'starter' ? (
-                <span className="inline-flex items-center text-xs font-semibold text-purple-700">
-                  <CheckCircle2 className="w-4 h-4 mr-1 text-purple-600" /> Active Plan
+                <span className="inline-flex items-center text-xs font-semibold text-purple-700 dark:text-purple-300">
+                  <CheckCircle2 className="w-4 h-4 mr-1 text-purple-600 dark:text-purple-400" /> Active Plan
                 </span>
               ) : (
                 <button
                   type="button"
                   disabled={updatingPlan}
                   onClick={() => handlePlanSelect('starter')}
-                  className="w-full text-xs py-2 px-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                  className="w-full text-xs py-2 px-3 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-700 dark:text-slate-200 font-semibold rounded-lg transition-colors flex items-center justify-center gap-1 cursor-pointer"
                 >
-                  <XCircle className="w-3.5 h-3.5 text-gray-500" />
+                  <XCircle className="w-3.5 h-3.5 text-gray-500 dark:text-slate-400" />
                   <span>Downgrade</span>
                 </button>
               )}
@@ -409,19 +409,19 @@ export const ProfilePage: React.FC = () => {
             <div
               className={`p-4 rounded-xl border-2 transition-all ${
                 profile.selectedPackage === 'pro'
-                  ? 'border-purple-600 bg-purple-50/40 shadow-sm'
-                  : 'border-gray-200 bg-white'
+                  ? 'border-purple-600 bg-purple-50/40 dark:bg-purple-950/40 shadow-sm'
+                  : 'border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900'
               }`}
             >
               <div className="flex justify-between items-center mb-1">
-                <h3 className="font-bold text-gray-900">Pro</h3>
-                <span className="text-xs font-semibold text-purple-600">$9.99/mo</span>
+                <h3 className="font-bold text-gray-900 dark:text-slate-100">Pro</h3>
+                <span className="text-xs font-semibold text-purple-600 dark:text-purple-400">$9.99/mo</span>
               </div>
-              <p className="text-xs text-gray-500 mb-4">5 users, custom branding, custom slug.</p>
+              <p className="text-xs text-gray-500 dark:text-slate-400 mb-4">5 users, custom branding, custom slug.</p>
 
               {profile.selectedPackage === 'pro' ? (
-                <span className="inline-flex items-center text-xs font-semibold text-purple-700">
-                  <CheckCircle2 className="w-4 h-4 mr-1 text-purple-600" /> Active Plan
+                <span className="inline-flex items-center text-xs font-semibold text-purple-700 dark:text-purple-300">
+                  <CheckCircle2 className="w-4 h-4 mr-1 text-purple-600 dark:text-purple-400" /> Active Plan
                 </span>
               ) : (
                 <button
@@ -439,19 +439,19 @@ export const ProfilePage: React.FC = () => {
             <div
               className={`p-4 rounded-xl border-2 transition-all ${
                 profile.selectedPackage === 'business'
-                  ? 'border-purple-600 bg-purple-50/40 shadow-sm'
-                  : 'border-gray-200 bg-white'
+                  ? 'border-purple-600 bg-purple-50/40 dark:bg-purple-950/40 shadow-sm'
+                  : 'border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900'
               }`}
             >
               <div className="flex justify-between items-center mb-1">
-                <h3 className="font-bold text-gray-900">Business</h3>
-                <span className="text-xs font-semibold text-purple-600">$24.99/mo</span>
+                <h3 className="font-bold text-gray-900 dark:text-slate-100">Business</h3>
+                <span className="text-xs font-semibold text-purple-600 dark:text-purple-400">$24.99/mo</span>
               </div>
-              <p className="text-xs text-gray-500 mb-4">Unlimited users & locations.</p>
+              <p className="text-xs text-gray-500 dark:text-slate-400 mb-4">Unlimited users & locations.</p>
 
               {profile.selectedPackage === 'business' ? (
-                <span className="inline-flex items-center text-xs font-semibold text-purple-700">
-                  <CheckCircle2 className="w-4 h-4 mr-1 text-purple-600" /> Active Plan
+                <span className="inline-flex items-center text-xs font-semibold text-purple-700 dark:text-purple-300">
+                  <CheckCircle2 className="w-4 h-4 mr-1 text-purple-600 dark:text-purple-400" /> Active Plan
                 </span>
               ) : (
                 <button
@@ -467,10 +467,10 @@ export const ProfilePage: React.FC = () => {
           </div>
 
           {profile.selectedPackage !== 'starter' && (
-            <div className="pt-2 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="pt-2 border-t border-gray-100 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
-                <p className="text-xs font-medium text-gray-700">Need to stop your subscription?</p>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs font-medium text-gray-700 dark:text-slate-300">Need to stop your subscription?</p>
+                <p className="text-xs text-gray-500 dark:text-slate-400">
                   Cancelling reverts your account to the free Starter tier immediately.
                 </p>
               </div>
@@ -478,7 +478,7 @@ export const ProfilePage: React.FC = () => {
                 type="button"
                 disabled={updatingPlan}
                 onClick={() => handlePlanSelect('starter')}
-                className="text-xs px-4 py-2 border border-red-200 text-red-600 hover:bg-red-50 font-semibold rounded-lg transition-colors flex items-center justify-center gap-1 shrink-0 cursor-pointer"
+                className="text-xs px-4 py-2 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/60 font-semibold rounded-lg transition-colors flex items-center justify-center gap-1 shrink-0 cursor-pointer"
               >
                 <XCircle className="w-3.5 h-3.5" />
                 <span>Cancel Subscription</span>
@@ -488,16 +488,16 @@ export const ProfilePage: React.FC = () => {
         </div>
 
         {/* SECTION 3: Business Details, Branding & Operating Hours */}
-        <form onSubmit={handleProfileSave} className="bg-white p-6 sm:p-8 rounded-xl shadow-md border border-gray-100 space-y-6">
-          <div className="flex items-center gap-2 pb-3 border-b border-gray-100">
-            <Building className="w-5 h-5 text-purple-600" />
-            <h2 className="text-lg font-bold text-gray-800">Business Details & Branding</h2>
+        <form onSubmit={handleProfileSave} className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-xl shadow-md border border-gray-100 dark:border-slate-700 space-y-6">
+          <div className="flex items-center gap-2 pb-3 border-b border-gray-100 dark:border-slate-700">
+            <Building className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+            <h2 className="text-lg font-bold text-gray-800 dark:text-slate-100">Business Details & Branding</h2>
           </div>
 
           <div className="space-y-4">
             {/* Business Name */}
             <div>
-              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
+              <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wide mb-1">
                 Business Name
               </label>
               <div className="relative">
@@ -506,16 +506,16 @@ export const ProfilePage: React.FC = () => {
                   required
                   value={profile.businessName}
                   onChange={(e) => setProfile({ ...profile, businessName: e.target.value })}
-                  className="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-gray-800 font-medium"
+                  className="w-full p-3 pl-10 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white dark:bg-slate-900 text-gray-800 dark:text-slate-100 font-medium placeholder-slate-400"
                   placeholder="e.g. Kimba Imperial Barbershop"
                 />
-                <Building className="w-4 h-4 text-gray-400 absolute left-3 top-3.5" />
+                <Building className="w-4 h-4 text-gray-400 dark:text-slate-500 absolute left-3 top-3.5" />
               </div>
             </div>
 
             {/* Business Phone */}
             <div>
-              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
+              <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wide mb-1">
                 Public Phone Number
               </label>
               <div className="relative">
@@ -523,16 +523,16 @@ export const ProfilePage: React.FC = () => {
                   type="tel"
                   value={profile.phone}
                   onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                  className="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-gray-800 font-medium"
+                  className="w-full p-3 pl-10 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white dark:bg-slate-900 text-gray-800 dark:text-slate-100 font-medium placeholder-slate-400"
                   placeholder="(868) 555-0199"
                 />
-                <Phone className="w-4 h-4 text-gray-400 absolute left-3 top-3.5" />
+                <Phone className="w-4 h-4 text-gray-400 dark:text-slate-500 absolute left-3 top-3.5" />
               </div>
             </div>
 
             {/* Notification Email */}
             <div>
-              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
+              <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wide mb-1">
                 Notification Email
               </label>
               <div className="relative">
@@ -541,28 +541,28 @@ export const ProfilePage: React.FC = () => {
                   required
                   value={profile.notificationEmail}
                   onChange={(e) => setProfile({ ...profile, notificationEmail: e.target.value })}
-                  className="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-gray-800 font-medium"
+                  className="w-full p-3 pl-10 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white dark:bg-slate-900 text-gray-800 dark:text-slate-100 font-medium placeholder-slate-400"
                   placeholder="alerts@yourdomain.com"
                 />
-                <Bell className="w-4 h-4 text-gray-400 absolute left-3 top-3.5" />
+                <Bell className="w-4 h-4 text-gray-400 dark:text-slate-500 absolute left-3 top-3.5" />
               </div>
-              <p className="text-xs text-gray-500 mt-1.5">
+              <p className="text-xs text-gray-500 dark:text-slate-400 mt-1.5">
                 New appointment notifications and system updates will be dispatched to this address.
               </p>
             </div>
 
             {/* BRANDING CUSTOMIZATION SUB-SECTION */}
-            <div className="pt-4 border-t border-gray-100 space-y-4">
+            <div className="pt-4 border-t border-gray-100 dark:border-slate-700 space-y-4">
               <div className="flex items-center gap-2 mb-1">
-                <Palette className="w-4 h-4 text-purple-600" />
-                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                <Palette className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wide">
                   Public Page Custom Branding & Theme
                 </label>
               </div>
 
-              {/* 👈 NUEVA OPCIÓN: Selector de Tema para la Página Pública */}
+              {/* Selector de Tema para la Página Pública */}
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
+                <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
                   Public Booking Page Theme Mode
                 </label>
                 <div className="grid grid-cols-3 gap-3">
@@ -577,23 +577,23 @@ export const ProfilePage: React.FC = () => {
                       onClick={() => setProfile({ ...profile, publicTheme: themeOpt.id as any })}
                       className={`p-3 rounded-lg border text-left transition-all cursor-pointer ${
                         profile.publicTheme === themeOpt.id
-                          ? 'border-purple-600 bg-purple-50 text-purple-900 font-semibold shadow-sm'
-                          : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                          ? 'border-purple-600 bg-purple-50 dark:bg-purple-950/60 text-purple-900 dark:text-purple-200 font-semibold shadow-sm'
+                          : 'border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800'
                       }`}
                     >
                       <div className="text-xs font-bold">{themeOpt.label}</div>
-                      <div className="text-[10px] text-gray-500 mt-0.5">{themeOpt.desc}</div>
+                      <div className="text-[10px] text-gray-500 dark:text-slate-400 mt-0.5">{themeOpt.desc}</div>
                     </button>
                   ))}
                 </div>
-                <p className="text-xs text-gray-500 mt-1.5">
+                <p className="text-xs text-gray-500 dark:text-slate-400 mt-1.5">
                   This sets the default theme appearance for your clients when they visit your public booking URL.
                 </p>
               </div>
 
               {/* Logo URL */}
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
+                <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
                   Logo Image URL
                 </label>
                 <div className="relative">
@@ -601,16 +601,16 @@ export const ProfilePage: React.FC = () => {
                     type="url"
                     value={profile.logoUrl}
                     onChange={(e) => setProfile({ ...profile, logoUrl: e.target.value })}
-                    className="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-gray-800 font-medium"
+                    className="w-full p-3 pl-10 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white dark:bg-slate-900 text-gray-800 dark:text-slate-100 font-medium placeholder-slate-400"
                     placeholder="https://example.com/logo.png"
                   />
-                  <Sparkles className="w-4 h-4 text-gray-400 absolute left-3 top-3.5" />
+                  <Sparkles className="w-4 h-4 text-gray-400 dark:text-slate-500 absolute left-3 top-3.5" />
                 </div>
               </div>
 
               {/* Header Image URL */}
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
+                <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
                   Header Cover Image URL
                 </label>
                 <div className="relative">
@@ -618,16 +618,16 @@ export const ProfilePage: React.FC = () => {
                     type="url"
                     value={profile.headerImageUrl}
                     onChange={(e) => setProfile({ ...profile, headerImageUrl: e.target.value })}
-                    className="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-gray-800 font-medium"
+                    className="w-full p-3 pl-10 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white dark:bg-slate-900 text-gray-800 dark:text-slate-100 font-medium placeholder-slate-400"
                     placeholder="https://example.com/banner.jpg"
                   />
-                  <Image className="w-4 h-4 text-gray-400 absolute left-3 top-3.5" />
+                  <Image className="w-4 h-4 text-gray-400 dark:text-slate-500 absolute left-3 top-3.5" />
                 </div>
               </div>
 
               {/* Brand Primary Color */}
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
+                <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
                   Primary Brand Accent Color
                 </label>
                 <div className="flex items-center space-x-3">
@@ -635,16 +635,16 @@ export const ProfilePage: React.FC = () => {
                     type="color"
                     value={profile.primaryColor}
                     onChange={(e) => setProfile({ ...profile, primaryColor: e.target.value })}
-                    className="h-10 w-20 cursor-pointer rounded-lg border border-gray-300 p-1 bg-white"
+                    className="h-10 w-20 cursor-pointer rounded-lg border border-gray-300 dark:border-slate-600 p-1 bg-white dark:bg-slate-900"
                   />
-                  <span className="text-gray-600 font-mono text-sm">{profile.primaryColor}</span>
+                  <span className="text-gray-600 dark:text-slate-400 font-mono text-sm">{profile.primaryColor}</span>
                 </div>
               </div>
 
               {/* Live Preview Card */}
-              <div className="border rounded-xl p-4 bg-gray-50 space-y-2 mt-4">
-                <span className="text-xs font-bold uppercase tracking-wider text-gray-500">Live Header Preview</span>
-                <div className="rounded-xl overflow-hidden border bg-white shadow-sm">
+              <div className="border border-gray-200 dark:border-slate-700 rounded-xl p-4 bg-gray-50 dark:bg-slate-900 space-y-2 mt-4">
+                <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-slate-400">Live Header Preview</span>
+                <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm">
                   <div
                     className="h-28 bg-cover bg-center transition-all"
                     style={{
@@ -657,49 +657,49 @@ export const ProfilePage: React.FC = () => {
                       <img
                         src={profile.logoUrl}
                         alt={profile.businessName}
-                        className="w-16 h-16 rounded-full border-4 border-white shadow-md object-cover bg-white"
+                        className="w-16 h-16 rounded-full border-4 border-white dark:border-slate-800 shadow-md object-cover bg-white dark:bg-slate-900"
                       />
                     ) : (
                       <div
-                        className="w-16 h-16 rounded-full border-4 border-white shadow-md flex items-center justify-center font-bold text-white text-xl"
+                        className="w-16 h-16 rounded-full border-4 border-white dark:border-slate-800 shadow-md flex items-center justify-center font-bold text-white text-xl"
                         style={{ backgroundColor: profile.primaryColor }}
                       >
                         {profile.businessName.charAt(0) || 'B'}
                       </div>
                     )}
-                    <h1 className="text-lg font-extrabold text-gray-900 mt-2">{profile.businessName || 'Your Business Name'}</h1>
+                    <h1 className="text-lg font-extrabold text-gray-900 dark:text-slate-100 mt-2">{profile.businessName || 'Your Business Name'}</h1>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Business Operating Hours Sub-Section */}
-            <div className="pt-4 border-t border-gray-100">
+            <div className="pt-4 border-t border-gray-100 dark:border-slate-700">
               <div className="flex items-center gap-2 mb-2">
-                <Clock className="w-4 h-4 text-purple-600" />
-                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                <Clock className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wide">
                   Business Operating Hours
                 </label>
               </div>
-              <p className="text-xs text-gray-500 mb-4">
+              <p className="text-xs text-gray-500 dark:text-slate-400 mb-4">
                 Set standard operating hours for client booking slots. Days marked closed will block public appointments.
               </p>
 
-              <div className="space-y-3 bg-gray-50 p-4 rounded-xl border border-gray-200">
+              <div className="space-y-3 bg-gray-50 dark:bg-slate-900 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
                 {DAYS.map((day) => {
                   const dayConfig = profile.businessHours[day] || { open: '09:00', close: '17:00', closed: false };
 
                   return (
                     <div
                       key={day}
-                      className="flex flex-col sm:flex-row sm:items-center justify-between p-2.5 rounded-lg bg-white border border-gray-200 gap-2 sm:gap-0"
+                      className="flex flex-col sm:flex-row sm:items-center justify-between p-2.5 rounded-lg bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 gap-2 sm:gap-0"
                     >
-                      <span className="capitalize font-semibold text-sm text-gray-700 w-28">
+                      <span className="capitalize font-semibold text-sm text-gray-700 dark:text-slate-300 w-28">
                         {day}
                       </span>
 
                       <div className="flex items-center space-x-4">
-                        <label className="flex items-center space-x-2 text-xs font-medium text-gray-600 cursor-pointer">
+                        <label className="flex items-center space-x-2 text-xs font-medium text-gray-600 dark:text-slate-400 cursor-pointer">
                           <input
                             type="checkbox"
                             checked={dayConfig.closed}
@@ -715,14 +715,14 @@ export const ProfilePage: React.FC = () => {
                               type="time"
                               value={dayConfig.open}
                               onChange={(e) => handleTimeChange(day, 'open', e.target.value)}
-                              className="p-1.5 border border-gray-300 rounded-lg text-gray-800 font-medium focus:ring-2 focus:ring-purple-500 bg-white"
+                              className="p-1.5 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-800 dark:text-slate-100 font-medium focus:ring-2 focus:ring-purple-500 bg-white dark:bg-slate-900"
                             />
-                            <span className="text-gray-400 font-medium">to</span>
+                            <span className="text-gray-400 dark:text-slate-500 font-medium">to</span>
                             <input
                               type="time"
                               value={dayConfig.close}
                               onChange={(e) => handleTimeChange(day, 'close', e.target.value)}
-                              className="p-1.5 border border-gray-300 rounded-lg text-gray-800 font-medium focus:ring-2 focus:ring-purple-500 bg-white"
+                              className="p-1.5 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-800 dark:text-slate-100 font-medium focus:ring-2 focus:ring-purple-500 bg-white dark:bg-slate-900"
                             />
                           </div>
                         )}
@@ -746,15 +746,15 @@ export const ProfilePage: React.FC = () => {
         </form>
 
         {/* SECTION 4: Change Password */}
-        <form onSubmit={handlePasswordUpdate} className="bg-white p-6 sm:p-8 rounded-xl shadow-md border border-gray-100 space-y-6">
-          <div className="flex items-center gap-2 pb-3 border-b border-gray-100">
-            <KeyRound className="w-5 h-5 text-purple-600" />
-            <h2 className="text-lg font-bold text-gray-800">Security & Password</h2>
+        <form onSubmit={handlePasswordUpdate} className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-xl shadow-md border border-gray-100 dark:border-slate-700 space-y-6">
+          <div className="flex items-center gap-2 pb-3 border-b border-gray-100 dark:border-slate-700">
+            <KeyRound className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+            <h2 className="text-lg font-bold text-gray-800 dark:text-slate-100">Security & Password</h2>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
+              <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wide mb-1">
                 New Password
               </label>
               <input
@@ -763,13 +763,13 @@ export const ProfilePage: React.FC = () => {
                 minLength={6}
                 value={passwords.newPassword}
                 onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-gray-800 font-medium"
+                className="w-full p-3 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white dark:bg-slate-900 text-gray-800 dark:text-slate-100 font-medium placeholder-slate-400"
                 placeholder="••••••••"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
+              <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wide mb-1">
                 Confirm New Password
               </label>
               <input
@@ -778,7 +778,7 @@ export const ProfilePage: React.FC = () => {
                 minLength={6}
                 value={passwords.confirmPassword}
                 onChange={(e) => setPasswords({ ...passwords, confirmPassword: e.target.value })}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-gray-800 font-medium"
+                className="w-full p-3 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white dark:bg-slate-900 text-gray-800 dark:text-slate-100 font-medium placeholder-slate-400"
                 placeholder="••••••••"
               />
             </div>
@@ -787,7 +787,7 @@ export const ProfilePage: React.FC = () => {
           <button
             type="submit"
             disabled={updatingPassword || !passwords.newPassword}
-            className="w-full sm:w-auto px-6 py-3 bg-gray-900 hover:bg-black text-white font-semibold rounded-lg transition-colors shadow-md flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+            className="w-full sm:w-auto px-6 py-3 bg-gray-900 dark:bg-slate-700 hover:bg-black dark:hover:bg-slate-600 text-white font-semibold rounded-lg transition-colors shadow-md flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
           >
             <Lock className="w-4 h-4" />
             <span>{updatingPassword ? 'Updating Password...' : 'Update Password'}</span>
