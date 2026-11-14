@@ -737,8 +737,7 @@ export const ProfilePage: React.FC = () => {
           <button
             type="submit"
             disabled={savingProfile}
-            className="w-full sm:w-auto px-6 py-3 bg-purple-700 hover:bg-purple-800 text-white font-semibold rounded-lg transition-colors shadow-md flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
-            style={{ backgroundColor: profile.primaryColor }}
+            className="w-full sm:w-auto px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors shadow-md flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
           >
             <Save className="w-4 h-4" />
             <span>{savingProfile ? 'Saving Changes...' : 'Save Profile Changes'}</span>
@@ -787,7 +786,7 @@ export const ProfilePage: React.FC = () => {
           <button
             type="submit"
             disabled={updatingPassword || !passwords.newPassword}
-            className="w-full sm:w-auto px-6 py-3 bg-gray-900 dark:bg-slate-700 hover:bg-black dark:hover:bg-slate-600 text-white font-semibold rounded-lg transition-colors shadow-md flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+            className="w-full sm:w-auto px-6 py-3 bg-purple-700 hover:bg-purple-800 text-white font-semibold rounded-lg transition-colors shadow-md flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
           >
             <Lock className="w-4 h-4" />
             <span>{updatingPassword ? 'Updating Password...' : 'Update Password'}</span>
