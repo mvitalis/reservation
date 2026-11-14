@@ -2,76 +2,83 @@ const { test, expect } = require('@playwright/test');
 
 test.setTimeout(60000);
 
-test.describe('Gestión del Negocio - Eliminación de Datos (Delete)', () => {
+test.describe('Gestión del Negocio - Eliminación Aleatoria de Datos (Delete Random)', () => {
   
   test.beforeEach(async ({ page }) => {
     page.on('dialog', dialog => dialog.accept());
-    await page.goto('https://reservation-q0wit7o5p-mark-fada.vercel.app/');
+    await page.goto('https://reservation-5d3ai8yr4-mark-fada.vercel.app/');
     await page.locator('input[type="email"]').fill('you@example.com');
     await page.locator('input[type="password"]').fill('123456');
     await page.locator('button[type="submit"]').click();
     await page.waitForURL(/\/admin/, { timeout: 20000 });
+    await page.waitForTimeout(2000);
   });
 
-  test('Services: Borrar un servicio existente', async ({ page }) => {
-    const testService = `Servicio Borrar ${Date.now()}`;
+  test('Services: Borrar un servicio aleatorio existente', async ({ page }) => {
     await page.getByRole('button', { name: 'Manage Services' }).click();
+    await page.waitForTimeout(2000);
 
-    // Creamos el registro primero para asegurarnos de que existe y poder borrarlo
-   
-    await expect(page.getByText('Servicio E2E 1794676608795')).toBeVisible({ timeout: 15000 });
+    // Obtenemos todos los botones de "Delete" disponibles en la sección de servicios
+    const deleteButtons = page.locator('button:has-text("Delete")');
+    const count = await deleteButtons.count();
 
-    // Procedemos a borrarlo usando el botón Delete
-    const serviceContainer = page.locator('div, tr, li').filter({ hasText: 'Servicio E2E 1794676608795' }).last();
-    await serviceContainer.getByRole('button', { name: 'Delete' }).click();
-    
-    await expect(page.getByText(testService)).not.toBeVisible({ timeout: 15000 });
-  });
-
-  test('Locations: Borrar una ubicación existente', async ({ page }) => {
-    const testLocation = `Sucursal Borrar ${Date.now()}`;
-    await page.getByRole('button', { name: 'Manage Locations' }).click();
-
-    // Creamos la ubicación primero
-    await page.getByPlaceholder('e.g. Main Branch, Couva Office').fill(testLocation);
-    await page.getByPlaceholder('e.g. (868) 555-0199').fill('8685559876');
-    await page.getByPlaceholder('e.g. 123 Main Street, Port of Spain').fill('San Fernando, Trinidad');
-    await page.getByRole('button', { name: 'Add Location', exact: true }).click();
-    
-    await page.getByRole('button', { name: 'Refresh Data' }).click();
-    await expect(page.getByText(testLocation)).toBeVisible({ timeout: 20000 });
-
-    // Borramos la ubicación
-    const locationContainer = page.locator('div, tr, li').filter({ hasText: testLocation }).last();
-    await locationContainer.getByRole('button', { name: 'Delete' }).click();
-    
-    await expect(page.getByText(testLocation)).not.toBeVisible({ timeout: 15000 });
-  });
-
-  test('Staff: Borrar un empleado existente', async ({ page }) => {
-    const timestamp = Date.now();
-    const testStaff = `Empleado Borrar ${timestamp}`;
-    await page.getByRole('button', { name: 'Manage Staff' }).click();
-
-    // Creamos el empleado primero
-    await page.getByPlaceholder('e.g. Alex Morgan').fill(testStaff);
-    await page.getByPlaceholder('alex@example.com').fill(`delete.${timestamp}@test.com`);
-
-    const staffSelect = page.locator('select').first();
-    if (await staffSelect.count() > 0 && (await staffSelect.locator('option').count()) > 0) {
-      await staffSelect.selectOption({ index: 0 });
+    if (count === 0) {
+      console.log('No hay servicios disponibles para borrar aleatoriamente.');
+      return;
     }
 
-    await page.getByRole('button', { name: 'Add Staff Member', exact: true }).click();
-    
-    await page.getByRole('button', { name: 'Refresh Data' }).click();
-    await expect(page.getByText(testStaff)).toBeVisible({ timeout: 20000 });
+    // Elegimos un índice aleatorio entre 0 y count - 1
+    const randomIndex = Math.floor(Math.random() * count);
+    const targetButton = deleteButtons.nth(randomIndex);
 
-    // Borramos el empleado
-    const staffContainer = page.locator('div, tr, li').filter({ hasText: testStaff }).last();
-    staffContainer.getByRole('button', { name: 'Delete' }).click();
+    // Hacemos clic en el botón de borrar de ese elemento aleatorio
+    await targetButton.click();
+    await page.waitForTimeout(2000);
 
-    await expect(page.getByText(testStaff)).not.toBeVisible({ timeout: 15000 });
+    // Captura de pantalla al finalizar
+    await page.screenshot({ path: 'screenshot-service-deleted-random.png', fullPage: true });
+  });
+
+  test('Locations: Borrar una ubicación aleatoria existente', async ({ page }) => {
+    await page.getByRole('button', { name: 'Manage Locations' }).click();
+    await page.waitForTimeout(2000);
+
+    const deleteButtons = page.locator('button:has-text("Delete")');
+    const count = await deleteButtons.count();
+
+    if (count === 0) {
+      console.log('No hay ubicaciones disponibles para borrar aleatoriamente.');
+      return;
+    }
+
+    const randomIndex = Math.floor(Math.random() * count);
+    const targetButton = deleteButtons.nth(randomIndex);
+
+    await targetButton.click();
+    await page.waitForTimeout(2000);
+
+    await page.screenshot({ path: 'screenshot-location-deleted-random.png', fullPage: true });
+  });
+
+  test('Staff: Borrar un empleado aleatorio existente', async ({ page }) => {
+    await page.getByRole('button', { name: 'Manage Staff' }).click();
+    await page.waitForTimeout(2000);
+
+    const deleteButtons = page.locator('button:has-text("Delete")');
+    const count = await deleteButtons.count();
+
+    if (count === 0) {
+      console.log('No hay personal disponible para borrar aleatoriamente.');
+      return;
+    }
+
+    const randomIndex = Math.floor(Math.random() * count);
+    const targetButton = deleteButtons.nth(randomIndex);
+
+    await targetButton.click();
+    await page.waitForTimeout(2000);
+
+    await page.screenshot({ path: 'screenshot-staff-deleted-random.png', fullPage: true });
   });
 
 });

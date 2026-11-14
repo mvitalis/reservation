@@ -6,7 +6,7 @@ test.describe('Gestión del Negocio - Solo Entrada de Datos (Add)', () => {
   
   test.beforeEach(async ({ page }) => {
     page.on('dialog', dialog => dialog.accept());
-    await page.goto('https://reservation-q0wit7o5p-mark-fada.vercel.app/');
+    await page.goto('https://reservation-5d3ai8yr4-mark-fada.vercel.app');
     await page.locator('input[type="email"]').fill('you@example.com');
     await page.locator('input[type="password"]').fill('123456');
     
