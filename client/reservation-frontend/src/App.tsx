@@ -11,13 +11,18 @@ import { supabase } from './supabaseClient';
 import { MasterAdminDashboard } from './MasterAdminDashboard';
 import { AdminGuard } from './AdminGuard';
 import { ThemeToggle } from './ThemeToggle';
+import { useInactivityTimeout } from './useInactivityTimeout'; // Asegúrate de que la ruta coincida con tu carpeta src
+import { InactivityModal } from './InactivityModal'; // Asegúrate de que la ruta coincida con tu carpeta src
 
 const PAYPAL_CLIENT_ID = 'BAA1egOcwl_6giFBDt96jkkPIHeork6b_VIxvdibRlLEiuLwwaWz5Q4C-qmadXpgrYLhnHX3_hsdp8EN6w';
 
-// Internal admin navigation wrapper with mobile hamburger menu
+// Internal admin navigation wrapper with mobile hamburger menu & inactivity protection
 function AdminLayout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
+
+  // Protección por inactividad: 15 minutos totales, alerta los últimos 2 minutos
+  const { showWarning, remainingSeconds, resetTimer } = useInactivityTimeout(15, 2);
 
   const handleLogout = async () => {
     try {
@@ -133,7 +138,15 @@ function AdminLayout({ children }: { children: React.ReactNode }) {
           </div>
         )}
       </nav>
+
       <main>{children}</main>
+
+      {/* Modal flotante de advertencia por inactividad */}
+      <InactivityModal
+        show={showWarning}
+        remainingSeconds={remainingSeconds}
+        onStayConnected={resetTimer}
+      />
     </div>
   );
 }

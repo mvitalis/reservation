@@ -32,10 +32,13 @@ export const AdminDashboard: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [copied, setCopied] = useState<boolean>(false);
   
+  // Nuevo estado para disparar la recarga general en todos los submódulos
+  const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
+  
   const navigate = useNavigate();
   const shareableUrl = businessSlug ? `${window.location.origin}/book/${businessSlug}` : '';
 
-  // 1. Cargar el negocio y aplicar automáticamente el tema guardado en Supabase (sin botones en pantalla)
+  // 1. Cargar el negocio y aplicar automáticamente el tema guardado en Supabase
   useEffect(() => {
     const checkAuthAndFetchBusiness = async () => {
       const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -60,7 +63,6 @@ export const AdminDashboard: React.FC = () => {
         setBusinessName(data.name);
         setBusinessSlug(data.slug);
 
-        // Aplicar de forma silenciosa el tema guardado en la base de datos
         const root = document.documentElement;
         if (data.admin_theme === 'dark') {
           root.classList.add('dark');
@@ -107,6 +109,12 @@ export const AdminDashboard: React.FC = () => {
   useEffect(() => {
     fetchBookings();
   }, [fetchBookings]);
+
+  // Función global para refrescar tanto las reservas como los componentes hijos
+  const handleRefreshAll = () => {
+    fetchBookings();
+    setRefreshTrigger((prev) => prev + 1); // Incrementa para avisar a Services, Locations y Staff que deben recargar
+  };
 
   const handleStatusChange = async (bookingId: string, newStatus: string) => {
     try {
@@ -160,7 +168,7 @@ export const AdminDashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-slate-950 text-gray-900 dark:text-slate-100 p-6 transition-colors">
       <div className="max-w-6xl mx-auto space-y-6">
-        {/* Header with Business Branding (Sin Toggle Visual) */}
+        {/* Header with Business Branding */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-slate-800 transition-colors">
           <div>
             <div className="flex items-center gap-2">
@@ -173,7 +181,7 @@ export const AdminDashboard: React.FC = () => {
           </div>
 
           <button
-            onClick={fetchBookings}
+            onClick={handleRefreshAll}
             className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium text-sm rounded-lg transition-colors shadow-sm self-start md:self-auto cursor-pointer"
           >
             Refresh Data
@@ -362,9 +370,10 @@ export const AdminDashboard: React.FC = () => {
           </div>
         )}
 
-        {activeTab === 'services' && <ServiceManager />}
-        {activeTab === 'locations' && <LocationManager />}
-        {activeTab === 'staff' && <StaffManager />}
+        {/* Pasamos el prop key o refreshTrigger a los gestores para que se actualicen al hacer clic en Refresh */}
+        {activeTab === 'services' && <ServiceManager key={`services-${refreshTrigger}`} />}
+        {activeTab === 'locations' && <LocationManager key={`locations-${refreshTrigger}`} />}
+        {activeTab === 'staff' && <StaffManager key={`staff-${refreshTrigger}`} />}
       </div>
     </div>
   );

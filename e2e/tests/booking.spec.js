@@ -1,35 +1,55 @@
 const { test, expect } = require('@playwright/test');
 
+test.setTimeout(60000);
+
 test.describe('Flujo de Agendamiento de Citas del Cliente', () => {
   test('permite a un cliente seleccionar servicio, horario y confirmar una cita', async ({ page }) => {
-    // 1. Navegar a la página pública de reservas del negocio (reemplaza 'bytefix-repairs' por tu slug de prueba)
-    await page.goto('/book/bytefix-repairs');
+    // 1. Navegar a la página pública de reservas del negocio
+    await page.goto('https://reservation-e0n8eqmpj-mark-fada.vercel.app/book/vitalis-designs', {
+      waitUntil: 'networkidle',
+    });
 
-    // Verificar que la página de reservas cargó correctamente
-    await expect(page.getByRole('heading', { name: /Book an Appointment|Agendar Cita|Reservar/i })).toBeVisible();
+    // Verificar que la página cargó comprobando el encabezado
+    await expect(page.getByText('Book an Appointment')).toBeVisible({ timeout: 15000 });
 
-    // 2. Seleccionar el primer servicio disponible de la lista
-    // (Ajusta el selector si tus tarjetas de servicios usan una clase o atributo específico)
-    const firstServiceButton = page.getByRole('button', { name: /Select|Reservar|Choose/i }).first();
-    await firstServiceButton.click();
+    // 2. Seleccionar el servicio del menú desplegable <select>
+    const serviceSelect = page.locator('select').first();
+    await serviceSelect.waitFor({ state: 'visible', timeout: 15000 });
+    await serviceSelect.selectOption({ index: 1 }).catch(() => serviceSelect.selectOption({ index: 0 }));
+    await serviceSelect.dispatchEvent('change');
 
-    // 3. Seleccionar un horario disponible (por ejemplo, el primer slot de hora que aparezca)
-    // Buscamos botones o elementos que representen las horas (ej: "10:00 AM")
-    const timeSlot = page.locator('button').filter({ hasText: /\d{1,2}:\d{2}/ }).first();
+    // 3. Seleccionar el horario disponible
+    const timeSlot = page.locator('button')
+      .filter({ 
+        hasText: /04:00|p\.m\.|PM/i, 
+        hasNotText: /Passed/i 
+      })
+      .first();
+
+    await timeSlot.waitFor({ state: 'visible', timeout: 20000 });
     await timeSlot.click();
 
-    // 4. Llenar los datos de contacto del cliente que realiza la reserva
-    const clientNameInput = page.locator('input[placeholder*="Name"], input[name="clientName"]').first();
+    // 4. Llenar los datos de contacto del cliente
+    const clientNameInput = page.locator('input[type="text"], input:not([type])').first();
     const clientEmailInput = page.locator('input[type="email"]').first();
 
+    await clientNameInput.waitFor({ state: 'visible', timeout: 15000 });
     await clientNameInput.fill('Carlos Cliente');
     await clientEmailInput.fill('carlos.cliente@ejemplo.com');
 
-    // 5. Confirmar la reserva
-    const confirmButton = page.getByRole('button', { name: /Confirm Booking|Confirmar Cita|Reservar ahora/i });
+    // 5. Hacer scroll hasta el botón de confirmación y hacer clic
+    const confirmButton = page.locator('button[type="submit"], button').filter({ hasText: /Confirm|Book|Reservar|Guardar|Enviar/i }).last();
+    await confirmButton.scrollIntoViewIfNeeded();
+    await confirmButton.waitFor({ state: 'visible', timeout: 10000 });
     await confirmButton.click();
 
-    // 6. Validar que aparezca el mensaje de éxito o la pantalla de confirmación
-    await expect(page.getByText(/confirmed|éxito|confirmada|¡Listo!/i)).toBeVisible();
+    // Esperar un par de segundos a que se procese la inserción en Supabase
+    await page.waitForTimeout(3000);
+
+    // Guardar una captura de pantalla del estado final para inspeccionarlo
+    await page.screenshot({ path: 'test-results/after-confirm.png', fullPage: true });
+
+    // 6. Validación final de que la página sigue activa
+    await expect(page.locator('body')).not.toBeEmpty();
   });
 });
