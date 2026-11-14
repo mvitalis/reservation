@@ -34,10 +34,12 @@ export const LocationManager: React.FC = () => {
   useEffect(() => {
     const fetchBusinessAndTier = async () => {
       try {
+        setLoading(true);
         const { data: { user }, error: authError } = await supabase.auth.getUser();
 
         if (authError || !user) {
           console.error('User not authenticated:', authError);
+          setErrorMessage('User not authenticated. Please log in again.');
           setLoading(false);
           return;
         }
@@ -62,9 +64,12 @@ export const LocationManager: React.FC = () => {
           setCurrentPlan(resolvedTier);
           const planConfig = PLANS[resolvedTier] || PLANS['starter'];
           setAllowMultipleLocations(planConfig.limits.allowMultipleLocations ?? false);
+        } else {
+          setErrorMessage('No business profile found for this user.');
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error loading business location details:', err);
+        setErrorMessage(err.message || 'Failed to load business details.');
       } finally {
         setLoading(false);
       }
@@ -77,7 +82,6 @@ export const LocationManager: React.FC = () => {
   const fetchLocations = useCallback(async () => {
     if (!businessId) return;
 
-    setLoading(true);
     try {
       const { data, error } = await supabase
         .from('locations')
@@ -90,8 +94,6 @@ export const LocationManager: React.FC = () => {
     } catch (err: any) {
       console.error('Failed to fetch locations:', err);
       setErrorMessage(err.message || 'Failed to load locations.');
-    } finally {
-      setLoading(false);
     }
   }, [businessId]);
 
@@ -123,8 +125,9 @@ export const LocationManager: React.FC = () => {
     e.preventDefault();
     setErrorMessage(null);
 
+    // Validación defensiva estricta para evitar guardar sin Business ID
     if (!businessId) {
-      setErrorMessage('Unable to save location: Missing Business ID.');
+      setErrorMessage('Unable to save location: Business ID is still loading. Please wait.');
       return;
     }
 
@@ -153,7 +156,7 @@ export const LocationManager: React.FC = () => {
 
         if (error) throw error;
       } else {
-        // Create New Location
+        // Create New Location asegurando el business_id
         const { error } = await supabase.from('locations').insert([
           {
             business_id: businessId,
@@ -167,7 +170,7 @@ export const LocationManager: React.FC = () => {
         if (error) throw error;
       }
 
-      fetchLocations();
+      await fetchLocations();
       handleCancel();
     } catch (err: any) {
       console.error('Error saving location:', err);
@@ -179,6 +182,7 @@ export const LocationManager: React.FC = () => {
 
   // Toggle Active Status
   const handleToggleActive = async (id: string, currentStatus: boolean) => {
+    if (!businessId) return;
     try {
       const { error } = await supabase
         .from('locations')
@@ -193,11 +197,13 @@ export const LocationManager: React.FC = () => {
       );
     } catch (err: any) {
       console.error('Error toggling location status:', err);
+      setErrorMessage(err.message);
     }
   };
 
   // Delete Location
   const handleDelete = async (id: string) => {
+    if (!businessId) return;
     if (!confirm('Are you sure you want to delete this location? Associated bookings will unassign this branch.')) {
       return;
     }
@@ -270,66 +276,74 @@ export const LocationManager: React.FC = () => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase mb-1">
-              Location Name
-            </label>
-            <input
-              type="text"
-              required
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full p-2.5 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder-slate-400"
-              placeholder="e.g. Main Branch, Couva Office"
-            />
-          </div>
+        {loading ? (
+          <div className="p-4 text-sm text-slate-500 animate-pulse">Loading configuration...</div>
+        ) : (
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase mb-1">
+                Location Name
+              </label>
+              <input
+                type="text"
+                required
+                disabled={!businessId || saving}
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full p-2.5 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder-slate-400 disabled:opacity-50"
+                placeholder="e.g. Main Branch, Couva Office"
+              />
+            </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase mb-1">
-              Phone Number
-            </label>
-            <input
-              type="tel"
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              className="w-full p-2.5 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder-slate-400"
-              placeholder="e.g. (868) 555-0199"
-            />
-          </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase mb-1">
+                Phone Number
+              </label>
+              <input
+                type="tel"
+                disabled={!businessId || saving}
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                className="w-full p-2.5 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder-slate-400 disabled:opacity-50"
+                placeholder="e.g. (868) 555-0199"
+              />
+            </div>
 
-          <div className="md:col-span-2">
-            <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase mb-1">
-              Full Address
-            </label>
-            <input
-              type="text"
-              value={formData.address}
-              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              className="w-full p-2.5 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder-slate-400"
-              placeholder="e.g. 123 Main Street, Port of Spain"
-            />
-          </div>
+            <div className="md:col-span-2">
+              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase mb-1">
+                Full Address
+              </label>
+              <input
+                type="text"
+                disabled={!businessId || saving}
+                value={formData.address}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                className="w-full p-2.5 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder-slate-400 disabled:opacity-50"
+                placeholder="e.g. 123 Main Street, Port of Spain"
+              />
+            </div>
 
-          <div className="md:col-span-2 flex gap-3 mt-2">
-            <button
-              type="submit"
-              disabled={saving || (!editingId && locations.length >= 1 && !allowMultipleLocations)}
-              className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium text-sm rounded-lg shadow-sm transition-colors cursor-pointer"
-            >
-              {saving ? 'Saving...' : editingId ? 'Update Location' : 'Add Location'}
-            </button>
-            {editingId && (
+            <div className="md:col-span-2 flex gap-3 mt-2">
               <button
-                type="button"
-                onClick={handleCancel}
-                className="px-5 py-2.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-medium text-sm rounded-lg transition-colors cursor-pointer"
+                type="submit"
+                disabled={!businessId || saving || (!editingId && locations.length >= 1 && !allowMultipleLocations)}
+                className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium text-sm rounded-lg shadow-sm transition-colors cursor-pointer"
               >
-                Cancel
+                {saving ? 'Saving...' : editingId ? 'Update Location' : 'Add Location'}
               </button>
-            )}
-          </div>
-        </form>
+              {editingId && (
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  disabled={saving}
+                  className="px-5 py-2.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-medium text-sm rounded-lg transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
+          </form>
+        )}
       </div>
 
       {/* Locations List */}
