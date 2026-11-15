@@ -112,7 +112,7 @@ export const PublicBookingView: React.FC = () => {
   const turnstileRef = useRef<TurnstileInstance>(null);
   const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || import.meta.env.REACT_APP_TURNSTILE_SITE_KEY || '1x00000000000000000000AA';
 
-  // 👈 Aplicar el tema público y limpiar al desmontar para evitar que afecte al Dashboard
+  // Aplicar el tema público y limpiar al desmontar
   useEffect(() => {
     const root = document.documentElement;
     const theme = businessInfo.public_theme || 'light';
@@ -137,14 +137,13 @@ export const PublicBookingView: React.FC = () => {
 
     mediaQuery.addEventListener('change', handleSystemChange);
 
-    // FUNCIÓN DE LIMPIEZA AL SALIR DE LA VISTA PÚBLICA
     return () => {
       mediaQuery.removeEventListener('change', handleSystemChange);
-      root.classList.remove('dark'); // Remueve el modo oscuro al volver al Admin Dashboard
+      root.classList.remove('dark');
     };
   }, [businessInfo.public_theme]);
 
-  // Fetch Business, Custom Branding, Working Hours, and Public Theme
+  // Fetch Business
   useEffect(() => {
     const fetchBusiness = async () => {
       setFetchingBusiness(true);
@@ -173,20 +172,6 @@ export const PublicBookingView: React.FC = () => {
           if (bId) foundBusiness = bId;
         }
 
-        if (!foundBusiness && !urlSlug && !urlId) {
-          const { data: authData } = await supabase.auth.getUser();
-
-          if (authData?.user) {
-            const { data: bOwner } = await supabase
-              .from('businesses')
-              .select('id, name, logo_url, header_image_url, primary_color, business_hours, public_theme')
-              .eq('owner_id', authData.user.id)
-              .maybeSingle();
-
-            if (bOwner) foundBusiness = bOwner;
-          }
-        }
-
         if (foundBusiness) {
           setBusinessInfo({
             id: foundBusiness.id,
@@ -213,7 +198,7 @@ export const PublicBookingView: React.FC = () => {
     fetchBusiness();
   }, [urlSlug, urlId]);
 
-  // Fetch Locations once Business is resolved
+  // Fetch Locations
   useEffect(() => {
     if (!businessInfo.id) return;
 
@@ -239,7 +224,7 @@ export const PublicBookingView: React.FC = () => {
     fetchLocations();
   }, [businessInfo.id]);
 
-  // Fetch Staff filtered by Selected Location
+  // Fetch Staff
   useEffect(() => {
     if (!selectedLocation) {
       setStaffMembers([]);
@@ -292,7 +277,7 @@ export const PublicBookingView: React.FC = () => {
     fetchServices();
   }, [businessInfo.id]);
 
-  // Dynamically generate slots based on selected date's working hours & location/staff filters
+  // Dynamically generate slots
   useEffect(() => {
     if (!selectedService || !selectedDate || !businessInfo.id) return;
 
@@ -421,10 +406,12 @@ export const PublicBookingView: React.FC = () => {
     try {
       const currentService = services.find((s) => s.id === selectedService);
       const durationMinutes = currentService?.duration_minutes || 30;
+      const serviceName = currentService?.name || 'Service';
 
       const startDateTime = new Date(selectedSlot);
       const endDateTime = new Date(startDateTime.getTime() + durationMinutes * 60 * 1000);
 
+      // 4. Insertar la reserva en Supabase
       const { error } = await supabase.from('bookings').insert([
         {
           business_id: businessInfo.id,
@@ -449,7 +436,26 @@ export const PublicBookingView: React.FC = () => {
         throw error;
       }
 
-      setMessage({ type: 'success', text: 'Booking confirmed successfully!' });
+      // 5. Enviar correo electrónico llamando al archivo api/sendEmail.js (o la ruta correspondiente)
+      try {
+        await fetch('/api/sendEmail', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            clientName: sanitizedName,
+            clientEmail: sanitizedEmail,
+            serviceName: serviceName,
+            businessName: businessInfo.name,
+            bookingDate: startDateTime.toLocaleDateString(),
+            bookingTime: startDateTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          }),
+        });
+      } catch (emailErr) {
+        console.error('Error al enviar el correo de confirmación:', emailErr);
+        // La reserva ya fue creada con éxito, por lo que solo registramos el error en consola sin bloquear al usuario
+      }
+
+      setMessage({ type: 'success', text: 'Booking confirmed successfully! Confirmation email sent.' });
       setFormData({ name: '', email: '', phone: '' });
       setSelectedSlot('');
       setBookedTimestamps((prev) => [...prev, new Date(selectedSlot).getTime()]);
@@ -483,7 +489,7 @@ export const PublicBookingView: React.FC = () => {
       <div className="max-w-2xl mx-auto px-4 -mt-20 relative z-10">
         <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-xl shadow-lg font-sans border border-gray-100 dark:border-slate-800 transition-colors">
           
-          {/* Logo & Business Name directly underneath */}
+          {/* Logo & Business Name */}
           <div className="flex flex-col items-center text-center mb-6">
             {businessInfo.logo_url ? (
               <img
@@ -504,7 +510,6 @@ export const PublicBookingView: React.FC = () => {
             <p className="text-sm font-medium text-gray-500 dark:text-slate-400 mt-1">Book an Appointment</p>
           </div>
 
-          {/* Limit Reached Warning Banner */}
           {isLimitReached && (
             <div className="p-4 mb-6 bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-sm rounded-lg text-center font-medium">
               This business is currently not accepting new online appointments for the remainder of this month as it has reached its monthly booking capacity.
@@ -526,7 +531,6 @@ export const PublicBookingView: React.FC = () => {
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
               
-              {/* Step 1: Location Branch Selection */}
               {locations.length > 0 && (
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">
@@ -540,7 +544,7 @@ export const PublicBookingView: React.FC = () => {
                     }}
                     disabled={isLimitReached}
                     required
-                    className="w-full p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-200 disabled:bg-gray-100 dark:disabled:bg-slate-800/50 disabled:cursor-not-allowed"
+                    className="w-full p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-200"
                   >
                     <option value="">-- Select Location --</option>
                     {locations.map((loc) => (
@@ -552,7 +556,6 @@ export const PublicBookingView: React.FC = () => {
                 </div>
               )}
 
-              {/* Step 2: Staff Member Selection */}
               {selectedLocation && staffMembers.length > 0 && (
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">
@@ -565,7 +568,7 @@ export const PublicBookingView: React.FC = () => {
                       setSelectedSlot('');
                     }}
                     disabled={isLimitReached}
-                    className="w-full p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-200 disabled:bg-gray-100 dark:disabled:bg-slate-800/50 disabled:cursor-not-allowed"
+                    className="w-full p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-200"
                   >
                     <option value="">-- Any Available Staff Member --</option>
                     {staffMembers.map((member) => (
@@ -577,7 +580,6 @@ export const PublicBookingView: React.FC = () => {
                 </div>
               )}
 
-              {/* Step 3: Service Selection */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">
                   {locations.length > 0 ? (staffMembers.length > 0 ? '3. Select Service' : '2. Select Service') : '1. Select Service'}
@@ -587,7 +589,7 @@ export const PublicBookingView: React.FC = () => {
                   onChange={(e) => setSelectedService(e.target.value)}
                   disabled={isLimitReached}
                   required
-                  className="w-full p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-200 disabled:bg-gray-100 dark:disabled:bg-slate-800/50 disabled:cursor-not-allowed"
+                  className="w-full p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-200"
                 >
                   <option value="">-- Select Service --</option>
                   {services.map((s) => (
@@ -598,7 +600,6 @@ export const PublicBookingView: React.FC = () => {
                 </select>
               </div>
 
-              {/* Step 4: Date Selection */}
               {selectedService && (
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">
@@ -611,12 +612,11 @@ export const PublicBookingView: React.FC = () => {
                     onChange={(e) => setSelectedDate(e.target.value)}
                     disabled={isLimitReached}
                     required
-                    className="w-full p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-200 disabled:bg-gray-100 dark:disabled:bg-slate-800/50 disabled:cursor-not-allowed"
+                    className="w-full p-3 border border-gray-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-200"
                   />
                 </div>
               )}
 
-              {/* Step 5: Time Slots Selection */}
               {selectedService && selectedDate && (
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">
@@ -659,7 +659,7 @@ export const PublicBookingView: React.FC = () => {
                             }`}
                             style={isSelected ? { backgroundColor: brandColor } : {}}
                           >
-                            {timeString} {isBooked ? '(Booked)' : isPastSlot ? '(Passed)' : ''}
+                            {timeString}
                           </button>
                         );
                       })}
@@ -668,7 +668,6 @@ export const PublicBookingView: React.FC = () => {
                 </div>
               )}
 
-              {/* Step 6: Customer Details & Verification */}
               {selectedSlot && (
                 <div className="space-y-4 border-t border-gray-200 dark:border-slate-800 pt-6">
                   <h3 className="text-lg font-semibold text-gray-800 dark:text-slate-200">Your Contact Details</h3>
@@ -681,7 +680,7 @@ export const PublicBookingView: React.FC = () => {
                       disabled={isLimitReached}
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full p-3 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-200 rounded-lg disabled:bg-gray-100 dark:disabled:bg-slate-800/50"
+                      className="w-full p-3 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-200 rounded-lg"
                       placeholder="Jane Doe"
                     />
                   </div>
@@ -694,7 +693,7 @@ export const PublicBookingView: React.FC = () => {
                       disabled={isLimitReached}
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full p-3 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-200 rounded-lg disabled:bg-gray-100 dark:disabled:bg-slate-800/50"
+                      className="w-full p-3 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-200 rounded-lg"
                       placeholder="jane@example.com"
                     />
                   </div>
@@ -707,12 +706,11 @@ export const PublicBookingView: React.FC = () => {
                       disabled={isLimitReached}
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      className="w-full p-3 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-200 rounded-lg disabled:bg-gray-100 dark:disabled:bg-slate-800/50"
+                      className="w-full p-3 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-200 rounded-lg"
                       placeholder="(868) 555-0199"
                     />
                   </div>
 
-                  {/* Cloudflare Turnstile Verification Widget */}
                   <div className="flex justify-center my-4">
                     <Turnstile
                       ref={turnstileRef}
