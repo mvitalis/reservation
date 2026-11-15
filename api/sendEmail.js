@@ -1,22 +1,21 @@
 import { Resend } from 'resend';
-import { supabase } from '@supabaseClient'; // Asegúrate de que la ruta a tu cliente de Supabase sea correcta
 
-// 1. Cargar la API Key desde las variables de entorno del servidor
 const resend = new Resend(process.env.RESEND_API_KEY1);
 
-export async function handleNewBooking(req, res) {
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ success: false, error: 'Método no permitido' });
+  }
+
   try {
     const { clientName, clientEmail, serviceName, businessName, bookingDate, bookingTime } = req.body;
 
-    // Validación básica
     if (!clientEmail || !serviceName) {
-      return res.status(400).json({ success: false, error: 'Faltan datos obligatorios para el correo.' });
+      return res.status(400).json({ success: false, error: 'Faltan datos obligatorios.' });
     }
 
-    // 2. Enviar el correo electrónico con Resend
-    // Nota: Si estás en fase de pruebas, 'onboarding@resend.dev' es el único remitente permitido por defecto.
     const emailResponse = await resend.emails.send({
-      from: 'Reservations <onboarding@resend.dev>', 
+      from: 'Reservations <onboarding@resend.dev>',
       to: [clientEmail],
       subject: `¡Reserva Confirmada: ${serviceName}!`,
       html: `
@@ -37,7 +36,7 @@ export async function handleNewBooking(req, res) {
 
     return res.status(200).json({ success: true, emailResponse });
   } catch (error) {
-    console.error('Error detallado en sendEmail.js:', error);
+    console.error('Error al enviar el correo:', error);
     return res.status(500).json({ success: false, error: error.message || 'Error interno al enviar el correo' });
   }
 }
