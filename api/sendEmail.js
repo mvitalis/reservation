@@ -15,7 +15,7 @@ export default async function handler(req, res) {
     }
 
     const emailResponse = await resend.emails.send({
-      from: 'Reservations <citas@tudominio.com>',
+      from: 'Reservations <onboarding@resend.dev>',
       to: [clientEmail],
       subject: `¡Reserva Confirmada: ${serviceName}!`,
       html: `
