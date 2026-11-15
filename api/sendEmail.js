@@ -1,5 +1,5 @@
 import { Resend } from 'resend';
-import { supabase } from './supabaseClient'; // Asegúrate de que la ruta a tu cliente de Supabase sea correcta
+import { supabase } from '/client/reservation-frontend/src/supabaseClient.ts'; // Asegúrate de que la ruta a tu cliente de Supabase sea correcta
 
 // 1. Cargar la API Key desde las variables de entorno del servidor
 const resend = new Resend(process.env.RESEND_API_KEY);
