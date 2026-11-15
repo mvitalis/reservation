@@ -276,8 +276,8 @@ export const ClientLogin: React.FC = () => {
                   placeholder="••••••••"
                   style={{ 
                     WebkitBoxShadow: '0 0 0 30px white inset', 
-                    WebkitTextFillColor: '#9d9ea0',
-                    color: '#0f172a' 
+                    WebkitTextFillColor: '#0f172a',
+                    color: '#9b9c9e' 
                   }}
                 />
               </div>
