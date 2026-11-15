@@ -252,7 +252,7 @@ export const ClientLogin: React.FC = () => {
                   autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="mt-1 block w-full rounded-md border border-slate-300 !bg-white !text-slate-900 px-3 py-2 shadow-sm focus:border-purple-500 focus:outline-none focus:ring-purple-500 sm:text-sm placeholder:text-slate-100"
+                  className="mt-1 block w-full rounded-md border border-slate-300 !bg-white !text-slate-900 px-3 py-2 shadow-sm focus:border-purple-500 focus:outline-none focus:ring-purple-500 sm:text-sm placeholder:text-slate-400"
                   placeholder="you@example.com"
                   style={{ 
                     WebkitBoxShadow: '0 0 0 30px white inset', 
@@ -272,11 +272,11 @@ export const ClientLogin: React.FC = () => {
                   autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="mt-1 block w-full rounded-md border border-slate-300 !bg-white !text-slate-900 px-3 py-2 shadow-sm focus:border-purple-500 focus:outline-none focus:ring-purple-500 sm:text-sm placeholder:text-slate-100"
+                  className="mt-1 block w-full rounded-md border border-slate-300 !bg-white !text-slate-900 px-3 py-2 shadow-sm focus:border-purple-500 focus:outline-none focus:ring-purple-500 sm:text-sm placeholder:text-slate-400"
                   placeholder="••••••••"
                   style={{ 
                     WebkitBoxShadow: '0 0 0 30px white inset', 
-                    WebkitTextFillColor: '#0f172a',
+                    WebkitTextFillColor: '#9d9ea0',
                     color: '#0f172a' 
                   }}
                 />
