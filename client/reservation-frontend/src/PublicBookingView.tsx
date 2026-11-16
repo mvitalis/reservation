@@ -436,7 +436,7 @@ export const PublicBookingView: React.FC = () => {
         throw error;
       }
 
-      // 5. Enviar correo electrónico llamando al archivo api/sendEmail.js (o la ruta correspondiente)
+      // 5. Enviar correo electrónico llamando al archivo api/sendEmail.js
       try {
         await fetch('/api/sendEmail', {
           method: 'POST',
@@ -452,7 +452,6 @@ export const PublicBookingView: React.FC = () => {
         });
       } catch (emailErr) {
         console.error('Error al enviar el correo de confirmación:', emailErr);
-        // La reserva ya fue creada con éxito, por lo que solo registramos el error en consola sin bloquear al usuario
       }
 
       setMessage({ type: 'success', text: 'Booking confirmed successfully! Confirmation email sent.' });
@@ -460,7 +459,6 @@ export const PublicBookingView: React.FC = () => {
       setSelectedSlot('');
       setBookedTimestamps((prev) => [...prev, new Date(selectedSlot).getTime()]);
 
-      // Reset Turnstile token on success
       turnstileRef.current?.reset();
       setTurnstileToken(null);
     } catch (err: any) {
@@ -477,6 +475,34 @@ export const PublicBookingView: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100 pb-12 transition-colors">
+      
+      {/* Estilos CSS inyectados para forzar la visibilidad del icono de calendario y prevenir el fondo gris de Autofill */}
+      <style>{`
+        input[type="date"]::-webkit-calendar-picker-indicator {
+          opacity: 1 !important;
+          display: block !important;
+          cursor: pointer;
+          filter: invert(0.5);
+        }
+        .dark input[type="date"]::-webkit-calendar-picker-indicator {
+          filter: invert(1);
+        }
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus,
+        input:-webkit-autofill:active {
+          -webkit-box-shadow: 0 0 0 30px #ffffff inset !important;
+          -webkit-text-fill-color: #111827 !important;
+        }
+        .dark input:-webkit-autofill,
+        .dark input:-webkit-autofill:hover,
+        .dark input:-webkit-autofill:focus,
+        .dark input:-webkit-autofill:active {
+          -webkit-box-shadow: 0 0 0 30px #1e293b inset !important;
+          -webkit-text-fill-color: #f1f5f9 !important;
+        }
+      `}</style>
+
       {/* Header / Cover Banner */}
       <div
         className="w-full h-48 sm:h-64 bg-cover bg-center relative transition-all"
