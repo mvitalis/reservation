@@ -18,6 +18,12 @@ interface Booking {
     duration_minutes: number;
     price: string;
   };
+  locations?: {
+    name: string;
+  } | null;
+  staff?: {
+    name: string;
+  } | null;
 }
 
 export const AdminDashboard: React.FC = () => {
@@ -79,26 +85,42 @@ export const AdminDashboard: React.FC = () => {
     checkAuthAndFetchBusiness();
   }, [navigate]);
 
-  // 2. Fetch Bookings for Business
+  // 2. Fetch Bookings for Business (incluyendo sucursal y miembro del personal)
   const fetchBookings = useCallback(async () => {
     if (!businessId) return;
     setLoading(true);
     try {
-      const token = localStorage.getItem('authToken');
-      const params = new URLSearchParams({ businessId });
-      if (filterDate) params.append('date', filterDate);
-      if (filterStatus !== 'all') params.append('status', filterStatus);
+      let query = supabase
+        .from('bookings')
+        .select(`
+          id,
+          customer_name,
+          customer_email,
+          customer_phone,
+          booking_start,
+          booking_end,
+          status,
+          services ( name, duration_minutes, price ),
+          locations ( name ),
+          staff ( name )
+        `)
+        .eq('business_id', businessId)
+        .order('booking_start', { ascending: false });
 
-      const res = await fetch(`/api/admin/bookings?${params.toString()}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      const data = await res.json();
-      if (data.success) {
-        setBookings(data.data);
+      if (filterDate) {
+        const startOfDay = new Date(`${filterDate}T00:00:00`).toISOString();
+        const endOfDay = new Date(`${filterDate}T23:59:59`).toISOString();
+        query = query.gte('booking_start', startOfDay).lte('booking_start', endOfDay);
       }
+
+      if (filterStatus !== 'all') {
+        query = query.eq('status', filterStatus);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+      setBookings((data as unknown as Booking[]) || []);
     } catch (err) {
       console.error('Error fetching bookings:', err);
     } finally {
@@ -113,26 +135,21 @@ export const AdminDashboard: React.FC = () => {
   // Función global para refrescar tanto las reservas como los componentes hijos
   const handleRefreshAll = () => {
     fetchBookings();
-    setRefreshTrigger((prev) => prev + 1); // Incrementa para avisar a Services, Locations y Staff que deben recargar
+    setRefreshTrigger((prev) => prev + 1);
   };
 
   const handleStatusChange = async (bookingId: string, newStatus: string) => {
     try {
-      const token = localStorage.getItem('authToken');
-      const res = await fetch(`/api/admin/bookings/${bookingId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setBookings((prev) =>
-          prev.map((b) => (b.id === bookingId ? { ...b, status: newStatus as Booking['status'] } : b))
-        );
-      }
+      const { error } = await supabase
+        .from('bookings')
+        .update({ status: newStatus })
+        .eq('id', bookingId);
+
+      if (error) throw error;
+
+      setBookings((prev) =>
+        prev.map((b) => (b.id === bookingId ? { ...b, status: newStatus as Booking['status'] } : b))
+      );
     } catch (err) {
       console.error('Failed to update status:', err);
     }
@@ -145,11 +162,15 @@ export const AdminDashboard: React.FC = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const filteredBookings = bookings.filter(
-    (b) =>
-      b.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      b.customer_email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredBookings = bookings.filter((b) => {
+    const q = searchQuery.toLowerCase();
+    return (
+      b.customer_name.toLowerCase().includes(q) ||
+      b.customer_email.toLowerCase().includes(q) ||
+      (b.locations?.name && b.locations.name.toLowerCase().includes(q)) ||
+      (b.staff?.name && b.staff.name.toLowerCase().includes(q))
+    );
+  });
 
   const getStatusBadge = (status: Booking['status']) => {
     const styles = {
@@ -277,10 +298,10 @@ export const AdminDashboard: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase mb-1">Search Customer</label>
+                <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase mb-1">Search Customer / Staff</label>
                 <input
                   type="text"
-                  placeholder="Name or Email..."
+                  placeholder="Name, Email, Location or Staff..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full p-2.5 border border-gray-300 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500"
@@ -313,6 +334,7 @@ export const AdminDashboard: React.FC = () => {
                       <tr className="bg-gray-50 dark:bg-slate-800/60 border-b border-gray-200 dark:border-slate-800 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">
                         <th className="p-4">Customer</th>
                         <th className="p-4">Service</th>
+                        <th className="p-4">Location & Staff</th>
                         <th className="p-4">Date & Time</th>
                         <th className="p-4">Status</th>
                         <th className="p-4 text-right">Actions</th>
@@ -330,6 +352,14 @@ export const AdminDashboard: React.FC = () => {
                             <div className="font-medium text-gray-800 dark:text-slate-200">{b.services?.name || 'Service'}</div>
                             <div className="text-xs text-gray-500 dark:text-slate-400">
                               ${b.services?.price} ({b.services?.duration_minutes} mins)
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <div className="font-medium text-gray-800 dark:text-slate-200">
+                              {b.locations?.name || 'Main Location'}
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-slate-400">
+                              {b.staff?.name ? `Staff: ${b.staff.name}` : 'Any Staff'}
                             </div>
                           </td>
                           <td className="p-4">
