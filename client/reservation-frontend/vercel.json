@@ -1,8 +1,14 @@
 {
-"rewrites" : [
-{
-"source" : "/(.*)" ,
-"destination" : "/index.html"
-}
-]
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/checkSubscriptions",
+      "schedule": "0 9 * * *"
+    }
+  ]
 }

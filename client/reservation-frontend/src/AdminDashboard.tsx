@@ -4,6 +4,7 @@ import { supabase } from './supabaseClient';
 import { ServiceManager } from './ServiceManager';
 import { LocationManager } from './LocationManager';
 import { StaffManager } from './StaffManager';
+import { CreditCard, AlertCircle } from 'lucide-react'; // Añadidos para el banner
 
 interface Booking {
   id: string;
@@ -30,6 +31,9 @@ export const AdminDashboard: React.FC = () => {
   const [businessId, setBusinessId] = useState<string>('');
   const [businessSlug, setBusinessSlug] = useState<string>('');
   const [businessName, setBusinessName] = useState<string>('Loading...');
+  const [packageTier, setPackageTier] = useState<string>('starter');
+  const [subscriptionExpiresAt, setSubscriptionExpiresAt] = useState<string | null>(null);
+  
   const [activeTab, setActiveTab] = useState<'bookings' | 'services' | 'locations' | 'staff'>('bookings');
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -38,13 +42,12 @@ export const AdminDashboard: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [copied, setCopied] = useState<boolean>(false);
   
-  // Nuevo estado para disparar la recarga general en todos los submódulos
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
   
   const navigate = useNavigate();
   const shareableUrl = businessSlug ? `${window.location.origin}/book/${businessSlug}` : '';
 
-  // 1. Cargar el negocio y aplicar automáticamente el tema guardado en Supabase
+  // 1. Cargar el negocio, tema y datos de suscripción
   useEffect(() => {
     const checkAuthAndFetchBusiness = async () => {
       const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -56,7 +59,7 @@ export const AdminDashboard: React.FC = () => {
 
       const { data, error } = await supabase
         .from('businesses')
-        .select('id, name, slug, admin_theme')
+        .select('id, name, slug, admin_theme, package_tier, subscription_expires_at')
         .eq('owner_id', user.id)
         .maybeSingle();
 
@@ -68,6 +71,8 @@ export const AdminDashboard: React.FC = () => {
         setBusinessId(data.id);
         setBusinessName(data.name);
         setBusinessSlug(data.slug);
+        setPackageTier(data.package_tier || 'starter');
+        setSubscriptionExpiresAt(data.subscription_expires_at);
 
         const root = document.documentElement;
         if (data.admin_theme === 'dark') {
@@ -85,7 +90,7 @@ export const AdminDashboard: React.FC = () => {
     checkAuthAndFetchBusiness();
   }, [navigate]);
 
-  // 2. Fetch Bookings for Business (incluyendo sucursal y miembro del personal)
+  // 2. Fetch Bookings for Business
   const fetchBookings = useCallback(async () => {
     if (!businessId) return;
     setLoading(true);
@@ -132,7 +137,6 @@ export const AdminDashboard: React.FC = () => {
     fetchBookings();
   }, [fetchBookings]);
 
-  // Función global para refrescar tanto las reservas como los componentes hijos
   const handleRefreshAll = () => {
     fetchBookings();
     setRefreshTrigger((prev) => prev + 1);
@@ -186,9 +190,53 @@ export const AdminDashboard: React.FC = () => {
     );
   };
 
+  // Calcular días restantes para el banner
+  const getDaysRemaining = () => {
+    if (!subscriptionExpiresAt) return null;
+    const diffTime = new Date(subscriptionExpiresAt).getTime() - new Date().getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
+  const daysRemaining = getDaysRemaining();
+
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-slate-950 text-gray-900 dark:text-slate-100 p-6 transition-colors">
       <div className="max-w-6xl mx-auto space-y-6">
+        
+        {/* Banner de Suscripción para Planes Pro / Business */}
+        {packageTier !== 'starter' && daysRemaining !== null && (
+          <div className={`p-4 rounded-xl border flex flex-col sm:flex-row items-center justify-between gap-4 transition-colors ${
+            daysRemaining <= 7 
+              ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200' 
+              : 'bg-purple-50 dark:bg-purple-950/40 border-purple-200 dark:border-purple-800 text-purple-900 dark:text-purple-200'
+          }`}>
+            <div className="flex items-center gap-3">
+              {daysRemaining <= 7 ? (
+                <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
+              ) : (
+                <CreditCard className="w-5 h-5 text-purple-600 dark:text-purple-400 shrink-0" />
+              )}
+              <div>
+                <h4 className="text-sm font-bold">
+                  Plan {packageTier.toUpperCase()} activo
+                </h4>
+                <p className="text-xs opacity-90">
+                  {daysRemaining > 0 
+                    ? `Tu suscripción de 30 días vence en ${daysRemaining} día(s) (${new Date(subscriptionExpiresAt!).toLocaleDateString()}).` 
+                    : 'Tu suscripción ha expirado o vence hoy.'}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate('/profile')} // O la ruta a tu página de perfil/suscripción
+              className="px-4 py-2 bg-purple-700 hover:bg-purple-800 text-white text-xs font-semibold rounded-lg transition-colors shadow-sm shrink-0 cursor-pointer"
+            >
+              Renovar / Gestionar Plan
+            </button>
+          </div>
+        )}
+
         {/* Header with Business Branding */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-slate-800 transition-colors">
           <div>
@@ -400,7 +448,6 @@ export const AdminDashboard: React.FC = () => {
           </div>
         )}
 
-        {/* Pasamos el prop key o refreshTrigger a los gestores para que se actualicen al hacer clic en Refresh */}
         {activeTab === 'services' && <ServiceManager key={`services-${refreshTrigger}`} />}
         {activeTab === 'locations' && <LocationManager key={`locations-${refreshTrigger}`} />}
         {activeTab === 'staff' && <StaffManager key={`staff-${refreshTrigger}`} />}
