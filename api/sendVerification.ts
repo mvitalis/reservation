@@ -38,7 +38,7 @@ export default async function handler(req: any, res: any) {
       password,
       options: {
         data: userMetadata,
-        redirectTo: redirectTo || `${req.headers.origin}/admin`,
+        redirectTo: redirectTo || `https://reservation-38hpjfcw8-mark-fada.vercel.app/admin`,
       },
     });
 
