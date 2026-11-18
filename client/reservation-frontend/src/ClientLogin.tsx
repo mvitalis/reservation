@@ -28,9 +28,8 @@ export const ClientLogin: React.FC = () => {
     };
   }, []);
 
-  // Direct key lookup since PLANS is a Record<PlanId, PlanConfig>
   const activePkg = PLANS[selectedPackage] || PLANS['pro'];
-  const packageList = Object.values(PLANS); // Convert object values to an array for rendering
+  const packageList = Object.values(PLANS);
 
   const generatedSlug = businessName
     .toLowerCase()
@@ -46,6 +45,7 @@ export const ClientLogin: React.FC = () => {
       email,
       password,
       options: {
+        emailRedirectTo: `${window.location.origin}/admin`,
         data: {
           full_name: fullName,
           package_tier: selectedPackage,
@@ -74,9 +74,22 @@ export const ClientLogin: React.FC = () => {
 
     try {
       if (isSignUp) {
-        await registerUserInSupabase();
-        alert('Account created successfully! Redirecting...');
-        navigate('/login');
+        const signUpData = await registerUserInSupabase();
+
+        // Si Supabase tiene activada la confirmación por correo, data.session será null
+        if (signUpData.user && !signUpData.session) {
+          setSuccessMsg(
+            `¡Cuenta creada! Hemos enviado un enlace de confirmación a ${email}. Por favor, revisa tu bandeja de entrada (o spam) y confirma tu correo antes de iniciar sesión.`
+          );
+          setIsSignUp(false);
+          setPassword('');
+        } else {
+          // Si la confirmación de correo está desactivada en Supabase, redirige sin bloquear
+          setSuccessMsg('¡Cuenta creada con éxito! Redirigiendo al panel...');
+          setTimeout(() => {
+            navigate('/admin');
+          }, 1500);
+        }
       } else {
         const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
           email,
@@ -104,7 +117,12 @@ export const ClientLogin: React.FC = () => {
         }
       }
     } catch (err: any) {
-      setErrorMsg(err.message || 'An unexpected error occurred.');
+      // Manejo amigable si intenta iniciar sesión sin haber confirmado el correo
+      if (err.message?.toLowerCase().includes('email not confirmed')) {
+        setErrorMsg('Tu correo electrónico aún no ha sido confirmado. Revisa tu bandeja de entrada y haz clic en el enlace de verificación.');
+      } else {
+        setErrorMsg(err.message || 'An unexpected error occurred.');
+      }
     } finally {
       setLoading(false);
     }
@@ -117,7 +135,7 @@ export const ClientLogin: React.FC = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: window.location.origin,
+          redirectTo: `${window.location.origin}/admin`,
         },
       });
       if (error) throw error;
@@ -151,7 +169,7 @@ export const ClientLogin: React.FC = () => {
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-3xl">
         <div className="bg-white py-8 px-6 shadow sm:rounded-lg sm:px-10 border border-slate-200">
           {successMsg && (
-            <div className="mb-6 p-4 bg-green-50 border-l-4 border-green-500 text-green-700 text-sm rounded">
+            <div className="mb-6 p-4 bg-green-50 border-l-4 border-green-500 text-green-800 text-sm rounded font-medium">
               {successMsg}
             </div>
           )}
@@ -315,7 +333,7 @@ export const ClientLogin: React.FC = () => {
                 type="password"
                 required
                 minLength={6}
-                autoComplete="current-password"
+                autoComplete={isSignUp ? 'new-password' : 'current-password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="mt-1 block w-full rounded-md border border-slate-300 !bg-white text-slate-900 px-3 py-2 shadow-sm focus:border-purple-500 focus:outline-none focus:ring-purple-500 sm:text-sm"
