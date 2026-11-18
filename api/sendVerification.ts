@@ -1,10 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
 import nodemailer from 'nodemailer';
 
-const supabaseAdmin = createClient(
-  process.env.VITE_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Usar SUPABASE_URL o VITE_SUPABASE_URL indistintamente
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !supabaseServiceKey) {
+  console.error('Faltan las credenciales de Supabase en las variables de entorno del servidor.');
+}
+
+const supabaseAdmin = createClient(supabaseUrl!, supabaseServiceKey!);
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
