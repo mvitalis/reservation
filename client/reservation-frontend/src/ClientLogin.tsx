@@ -38,15 +38,17 @@ export const ClientLogin: React.FC = () => {
     .replace(/[\s_-]+/g, '-')
     .replace(/^-+|-+$/g, '');
 
-  const registerUserInSupabase = async () => {
+  const registerUserViaApi = async () => {
     const { maxServices, allowCustomSlug, allowSmsReminders, allowMultipleLocations } = activePkg.limits;
 
-    const { data, error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/admin`,
-        data: {
+    const response = await fetch('/api/sendVerification', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email,
+        password,
+        redirectTo: `${window.location.origin}/admin`,
+        userMetadata: {
           full_name: fullName,
           package_tier: selectedPackage,
           business_name: businessName,
@@ -56,14 +58,16 @@ export const ClientLogin: React.FC = () => {
           allow_sms_reminders: allowSmsReminders,
           allow_multiple_locations: allowMultipleLocations,
         },
-      },
+      }),
     });
 
-    if (authError) {
-      throw new Error(`Supabase Auth: ${authError.message}`);
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.error || 'No se pudo completar el registro.');
     }
 
-    return data;
+    return result;
   };
 
   const handleSignInOrFreeSignUp = async (e: React.FormEvent) => {
@@ -74,22 +78,13 @@ export const ClientLogin: React.FC = () => {
 
     try {
       if (isSignUp) {
-        const signUpData = await registerUserInSupabase();
+        await registerUserViaApi();
 
-        // Si Supabase tiene activada la confirmación por correo, data.session será null
-        if (signUpData.user && !signUpData.session) {
-          setSuccessMsg(
-            `¡Cuenta creada! Hemos enviado un enlace de confirmación a ${email}. Por favor, revisa tu bandeja de entrada (o spam) y confirma tu correo antes de iniciar sesión.`
-          );
-          setIsSignUp(false);
-          setPassword('');
-        } else {
-          // Si la confirmación de correo está desactivada en Supabase, redirige sin bloquear
-          setSuccessMsg('¡Cuenta creada con éxito! Redirigiendo al panel...');
-          setTimeout(() => {
-            navigate('/admin');
-          }, 1500);
-        }
+        setSuccessMsg(
+          `¡Cuenta creada! Hemos enviado un correo de verificación a ${email}. Por favor, revisa tu bandeja de entrada (o spam) y haz clic en el enlace para activar tu cuenta.`
+        );
+        setIsSignUp(false);
+        setPassword('');
       } else {
         const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
           email,
@@ -117,7 +112,6 @@ export const ClientLogin: React.FC = () => {
         }
       }
     } catch (err: any) {
-      // Manejo amigable si intenta iniciar sesión sin haber confirmado el correo
       if (err.message?.toLowerCase().includes('email not confirmed')) {
         setErrorMsg('Tu correo electrónico aún no ha sido confirmado. Revisa tu bandeja de entrada y haz clic en el enlace de verificación.');
       } else {
