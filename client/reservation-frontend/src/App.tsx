@@ -34,7 +34,7 @@ function CustomerPreviewWrapper() {
           const { data: ownedBusiness } = await supabase
             .from('businesses')
             .select('id, slug')
-            .or(`id.eq.${user.id},owner_id.eq.${user.id},user_id.eq.${user.id}`)
+            .or(`id.eq.${user.id},owner_id.eq.${user.id}`)
             .maybeSingle();
 
           if (ownedBusiness) {

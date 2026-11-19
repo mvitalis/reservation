@@ -214,7 +214,7 @@ export const PublicBookingView: React.FC = () => {
             const { data: bByProfile } = await supabase
               .from('businesses')
               .select('id, name, logo_url, header_image_url, primary_color, business_hours, public_theme')
-              .or(`id.eq.${profileMatch.id},owner_id.eq.${profileMatch.id},user_id.eq.${profileMatch.id}`)
+              .or(`id.eq.${profileMatch.id},owner_id.eq.${profileMatch.id}`)
               .maybeSingle();
 
             if (bByProfile) {
