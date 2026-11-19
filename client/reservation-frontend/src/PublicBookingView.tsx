@@ -50,6 +50,11 @@ interface ExistingBooking {
   booking_end: string;
 }
 
+export interface PublicBookingViewProps {
+  fallbackSlug?: string | null;
+  fallbackId?: string | null;
+}
+
 const DEFAULT_HOURS: BusinessHours = {
   sunday: { open: '00:00', close: '00:00', closed: true },
   monday: { open: '09:00', close: '17:00', closed: false },
@@ -64,12 +69,15 @@ const isValidParam = (val?: string | null): val is string => {
   return Boolean(val && val.trim() !== '' && val !== 'null' && val !== 'undefined');
 };
 
-export const PublicBookingView: React.FC = () => {
+export const PublicBookingView: React.FC<PublicBookingViewProps> = ({
+  fallbackSlug,
+  fallbackId,
+}) => {
   const params = useParams<{ slug?: string; id?: string }>();
   const [searchParams] = useSearchParams();
 
-  const rawSlug = params.slug || searchParams.get('slug');
-  const rawId = params.id || searchParams.get('id');
+  const rawSlug = params.slug || searchParams.get('slug') || fallbackSlug;
+  const rawId = params.id || searchParams.get('id') || fallbackId;
 
   const urlSlug = isValidParam(rawSlug) ? rawSlug.trim() : undefined;
   const urlId = isValidParam(rawId) ? rawId.trim() : undefined;
@@ -211,14 +219,28 @@ export const PublicBookingView: React.FC = () => {
             .maybeSingle();
 
           if (profileMatch) {
-            const { data: bByProfile } = await supabase
-              .from('businesses')
-              .select('id, name, logo_url, header_image_url, primary_color, business_hours, public_theme')
-              .or(`id.eq.${profileMatch.id},owner_id.eq.${profileMatch.id}`)
-              .maybeSingle();
+            if (profileMatch.slug) {
+              const { data: bBySlug } = await supabase
+                .from('businesses')
+                .select('id, name, logo_url, header_image_url, primary_color, business_hours, public_theme')
+                .eq('slug', profileMatch.slug)
+                .maybeSingle();
 
-            if (bByProfile) {
-              foundBusiness = bByProfile;
+              if (bBySlug) {
+                foundBusiness = bBySlug;
+              }
+            }
+
+            if (!foundBusiness) {
+              const { data: bById } = await supabase
+                .from('businesses')
+                .select('id, name, logo_url, header_image_url, primary_color, business_hours, public_theme')
+                .eq('id', profileMatch.id)
+                .maybeSingle();
+
+              if (bById) {
+                foundBusiness = bById;
+              }
             }
           }
         }

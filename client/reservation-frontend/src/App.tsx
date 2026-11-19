@@ -30,29 +30,51 @@ function CustomerPreviewWrapper() {
         const { data: { user } } = await supabase.auth.getUser();
 
         if (user) {
-          // 1. Buscar negocio asociado directamente al usuario (id, owner_id o user_id)
-          const { data: ownedBusiness } = await supabase
+          // 1. Buscar negocio donde id coincida con user.id
+          const { data: directBusiness } = await supabase
             .from('businesses')
             .select('id, slug')
-            .or(`id.eq.${user.id},owner_id.eq.${user.id}`)
+            .eq('id', user.id)
             .maybeSingle();
 
-          if (ownedBusiness) {
+          if (directBusiness) {
             if (isMounted) {
-              setPreviewSlug(ownedBusiness.slug || null);
-              setPreviewId(ownedBusiness.id || user.id);
+              setPreviewSlug(directBusiness.slug || null);
+              setPreviewId(directBusiness.id);
               setResolved(true);
             }
             return;
           }
 
-          // 2. Respaldo desde profiles si aún no está creado en businesses
+          // 2. Respaldo desde profiles o user_metadata usando slug
           const { data: profile } = await supabase
             .from('profiles')
             .select('id, slug')
             .eq('id', user.id)
             .maybeSingle();
 
+          const candidateSlug =
+            profile?.slug ||
+            (typeof user.user_metadata?.slug === 'string' ? user.user_metadata.slug : null);
+
+          if (candidateSlug) {
+            const { data: businessBySlug } = await supabase
+              .from('businesses')
+              .select('id, slug')
+              .eq('slug', candidateSlug)
+              .maybeSingle();
+
+            if (businessBySlug) {
+              if (isMounted) {
+                setPreviewSlug(businessBySlug.slug || candidateSlug);
+                setPreviewId(businessBySlug.id);
+                setResolved(true);
+              }
+              return;
+            }
+          }
+
+          // 3. Respaldo con el id del perfil/usuario si no se encontró por slug directo
           if (profile) {
             if (isMounted) {
               setPreviewSlug(profile.slug || null);
@@ -61,16 +83,9 @@ function CustomerPreviewWrapper() {
             }
             return;
           }
-
-          // 3. Último respaldo: usar el propio ID del usuario
-          if (isMounted) {
-            setPreviewId(user.id);
-            setResolved(true);
-          }
-          return;
         }
 
-        // Si no hay sesión activa en /demo-booking, tomar un negocio de muestra como respaldo
+        // 4. Respaldo general: primer negocio disponible en la tabla businesses
         const { data: fallbackBusiness } = await supabase
           .from('businesses')
           .select('id, slug')
@@ -105,11 +120,13 @@ function CustomerPreviewWrapper() {
     );
   }
 
-  const queryParams = new URLSearchParams();
-  if (previewSlug) queryParams.set('slug', previewSlug);
-  if (previewId) queryParams.set('id', previewId);
-
-  return <PublicBookingView key={`${previewSlug || ''}-${previewId || ''}`} />;
+  return (
+    <PublicBookingView
+      key={`${previewSlug || ''}-${previewId || ''}`}
+      fallbackSlug={previewSlug}
+      fallbackId={previewId}
+    />
+  );
 }
 
 // Internal admin navigation wrapper with mobile hamburger menu & inactivity protection
