@@ -12,18 +12,34 @@ export interface UsageData {
   error: string | null;
 }
 
+const DEFAULT_USAGE: UsageData = {
+  tier: 'free',
+  monthlyLimit: 30,
+  currentCount: 0,
+  isLimitReached: false,
+  loading: false,
+  error: null,
+};
+
 export const useBookingUsage = (businessId: string): UsageData => {
   const [usage, setUsage] = useState<UsageData>({
-    tier: 'free',
-    monthlyLimit: 30,
-    currentCount: 0,
-    isLimitReached: false,
-    loading: true,
-    error: null,
+    ...DEFAULT_USAGE,
+    loading: Boolean(businessId),
   });
 
   useEffect(() => {
-    if (!businessId) return;
+    if (!businessId) {
+      setUsage(DEFAULT_USAGE);
+      return;
+    }
+
+    let isCancelled = false;
+
+    setUsage((prev) => ({
+      ...prev,
+      loading: true,
+      error: null,
+    }));
 
     const fetchUsage = async () => {
       try {
@@ -32,7 +48,7 @@ export const useBookingUsage = (businessId: string): UsageData => {
           .from('businesses')
           .select('subscription_tier')
           .eq('id', businessId)
-          .single();
+          .maybeSingle();
 
         if (bError) throw bError;
 
@@ -54,6 +70,8 @@ export const useBookingUsage = (businessId: string): UsageData => {
 
         if (cError) throw cError;
 
+        if (isCancelled) return;
+
         const currentCount = count || 0;
 
         setUsage({
@@ -65,6 +83,7 @@ export const useBookingUsage = (businessId: string): UsageData => {
           error: null,
         });
       } catch (err: any) {
+        if (isCancelled) return;
         setUsage((prev) => ({
           ...prev,
           loading: false,
@@ -74,6 +93,10 @@ export const useBookingUsage = (businessId: string): UsageData => {
     };
 
     fetchUsage();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [businessId]);
 
   return usage;
