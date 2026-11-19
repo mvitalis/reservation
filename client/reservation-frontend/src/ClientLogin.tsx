@@ -38,8 +38,17 @@ export const ClientLogin: React.FC = () => {
     .replace(/[\s_-]+/g, '-')
     .replace(/^-+|-+$/g, '');
 
+  const getOriginUrl = () => {
+    const envUrl = import.meta.env.VITE_BASE_URL;
+    if (envUrl && /^https?:\/\//i.test(envUrl)) {
+      return envUrl.replace(/\/+$/, '');
+    }
+    return window.location.origin.replace(/\/+$/, '');
+  };
+
   const registerUserViaApi = async () => {
     const { maxServices, allowCustomSlug, allowSmsReminders, allowMultipleLocations } = activePkg.limits;
+    const originUrl = getOriginUrl();
 
     const response = await fetch('/api/sendVerification', {
       method: 'POST',
@@ -47,7 +56,7 @@ export const ClientLogin: React.FC = () => {
       body: JSON.stringify({
         email,
         password,
-        redirectTo: `${window.location.origin}/admin`,
+        redirectTo: `${originUrl}/admin`,
         userMetadata: {
           full_name: fullName,
           package_tier: selectedPackage,
@@ -125,11 +134,12 @@ export const ClientLogin: React.FC = () => {
   // Función para autenticación con Google o Facebook
   const handleSocialLogin = async (provider: 'google' | 'facebook') => {
     setErrorMsg(null);
+    const originUrl = getOriginUrl();
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}/admin`,
+          redirectTo: `${originUrl}/admin`,
         },
       });
       if (error) throw error;

@@ -1,12 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
 import nodemailer from 'nodemailer';
 
-// Usar SUPABASE_URL o VITE_SUPABASE_URL indistintamente
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !supabaseServiceKey) {
-  console.error('Faltan las credenciales de Supabase en las variables de entorno del servidor.');
+  console.error('Faltan SUPABASE_URL/VITE_SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY en el entorno.');
 }
 
 const supabaseAdmin = createClient(supabaseUrl!, supabaseServiceKey!);
@@ -19,26 +18,68 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+function resolveFinalRedirect(req: any, requestedRedirect?: string): string | undefined {
+  const protocolHeader = req.headers?.['x-forwarded-proto'];
+  const hostHeader = req.headers?.['x-forwarded-host'] || req.headers?.host;
+  const protocol = Array.isArray(protocolHeader)
+    ? protocolHeader[0]
+    : (protocolHeader || 'https').split(',')[0].trim();
+  const host = Array.isArray(hostHeader) ? hostHeader[0] : hostHeader;
+
+  const headerOrigin = host ? `${protocol}://${host}`.replace(/\/+$/, '') : undefined;
+  const envBase = (process.env.BASE_URL || process.env.VITE_BASE_URL || '').trim().replace(/\/+$/, '');
+
+  const isLocalHost = (url?: string) => !!url && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i.test(url);
+
+  // Si la petición viene de un dominio público (no localhost), evitamos caer en BASE_URL=http://localhost:3000
+  if (requestedRedirect && !isLocalHost(requestedRedirect)) {
+    return requestedRedirect;
+  }
+
+  if (headerOrigin && !isLocalHost(headerOrigin)) {
+    return `${headerOrigin}/admin`;
+  }
+
+  if (envBase) {
+    return `${envBase}/admin`;
+  }
+
+  if (requestedRedirect) {
+    return requestedRedirect;
+  }
+
+  if (headerOrigin) {
+    return `${headerOrigin}/admin`;
+  }
+
+  return undefined;
+}
+
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { email, password, userMetadata, redirectTo } = req.body;
+  const { email, password, userMetadata, redirectTo } = req.body || {};
 
   if (!email || !password) {
     return res.status(400).json({ error: 'Email and password are required' });
   }
 
+  if (!supabaseUrl || !supabaseServiceKey) {
+    return res.status(500).json({ error: 'Server configuration error: missing Supabase credentials' });
+  }
+
   try {
-    // Crea el usuario en Supabase (sin confirmar aún) y genera el enlace oficial
+    const finalRedirectTo = resolveFinalRedirect(req, redirectTo);
+
     const { data, error } = await supabaseAdmin.auth.admin.generateLink({
       type: 'signup',
       email,
       password,
       options: {
         data: userMetadata,
-        redirectTo: redirectTo || `https://reservation-8irgzhvmh-mark-fada.vercel.app/admin`,
+        ...(finalRedirectTo ? { redirectTo: finalRedirectTo } : {}),
       },
     });
 
