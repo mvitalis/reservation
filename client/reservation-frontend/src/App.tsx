@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Link, Navigate, useNavigate } from 'react-router-dom';
 import { PayPalScriptProvider } from '@paypal/react-paypal-js';
 import { AdminDashboard } from './AdminDashboard';
@@ -11,10 +11,106 @@ import { supabase } from './supabaseClient';
 import { MasterAdminDashboard } from './MasterAdminDashboard';
 import { AdminGuard } from './AdminGuard';
 import { ThemeToggle } from './ThemeToggle';
-import { useInactivityTimeout } from './useInactivityTimeout'; // Asegúrate de que la ruta coincida con tu carpeta src
-import { InactivityModal } from './InactivityModal'; // Asegúrate de que la ruta coincida con tu carpeta src
+import { useInactivityTimeout } from './useInactivityTimeout';
+import { InactivityModal } from './InactivityModal';
 
 const PAYPAL_CLIENT_ID = 'BAA1egOcwl_6giFBDt96jkkPIHeork6b_VIxvdibRlLEiuLwwaWz5Q4C-qmadXpgrYLhnHX3_hsdp8EN6w';
+
+// Wrapper interno para la vista previa desde el panel de administración
+function CustomerPreviewWrapper() {
+  const [previewSlug, setPreviewSlug] = useState<string | null>(null);
+  const [previewId, setPreviewId] = useState<string | null>(null);
+  const [resolved, setResolved] = useState<boolean>(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const resolveBusinessForPreview = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (user) {
+          // 1. Buscar negocio asociado directamente al usuario (id, owner_id o user_id)
+          const { data: ownedBusiness } = await supabase
+            .from('businesses')
+            .select('id, slug')
+            .or(`id.eq.${user.id},owner_id.eq.${user.id},user_id.eq.${user.id}`)
+            .maybeSingle();
+
+          if (ownedBusiness) {
+            if (isMounted) {
+              setPreviewSlug(ownedBusiness.slug || null);
+              setPreviewId(ownedBusiness.id || user.id);
+              setResolved(true);
+            }
+            return;
+          }
+
+          // 2. Respaldo desde profiles si aún no está creado en businesses
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('id, slug')
+            .eq('id', user.id)
+            .maybeSingle();
+
+          if (profile) {
+            if (isMounted) {
+              setPreviewSlug(profile.slug || null);
+              setPreviewId(profile.id || user.id);
+              setResolved(true);
+            }
+            return;
+          }
+
+          // 3. Último respaldo: usar el propio ID del usuario
+          if (isMounted) {
+            setPreviewId(user.id);
+            setResolved(true);
+          }
+          return;
+        }
+
+        // Si no hay sesión activa en /demo-booking, tomar un negocio de muestra como respaldo
+        const { data: fallbackBusiness } = await supabase
+          .from('businesses')
+          .select('id, slug')
+          .limit(1)
+          .maybeSingle();
+
+        if (isMounted && fallbackBusiness) {
+          setPreviewSlug(fallbackBusiness.slug || null);
+          setPreviewId(fallbackBusiness.id || null);
+        }
+      } catch (err) {
+        console.error('Error resolving customer preview business:', err);
+      } finally {
+        if (isMounted) {
+          setResolved(true);
+        }
+      }
+    };
+
+    resolveBusinessForPreview();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  if (!resolved) {
+    return (
+      <div className="p-8 text-center text-sm text-gray-500 dark:text-slate-400">
+        Loading customer preview...
+      </div>
+    );
+  }
+
+  const queryParams = new URLSearchParams();
+  if (previewSlug) queryParams.set('slug', previewSlug);
+  if (previewId) queryParams.set('id', previewId);
+
+  return <PublicBookingView key={`${previewSlug || ''}-${previewId || ''}`} />;
+}
 
 // Internal admin navigation wrapper with mobile hamburger menu & inactivity protection
 function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -159,9 +255,10 @@ function App() {
           {/* AUTHENTICATION & ONBOARDING */}
           <Route path="/login" element={<ClientLogin />} />
           <Route path="/setup-business" element={<SetupBusiness />} />
-          
-          {/* PUBLIC CUSTOMER ROUTE */}
+
+          {/* PUBLIC CUSTOMER ROUTES */}
           <Route path="/book/:slug" element={<PublicBookingView />} />
+          <Route path="/book-id/:id" element={<PublicBookingView />} />
 
           {/* MASTER ADMIN ROUTE */}
           <Route
@@ -196,10 +293,11 @@ function App() {
             path="/demo-booking"
             element={
               <AdminLayout>
-                <PublicBookingView />
+                <CustomerPreviewWrapper />
               </AdminLayout>
             }
           />
+
           <Route
             path="/profile"
             element={
