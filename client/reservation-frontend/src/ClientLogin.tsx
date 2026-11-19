@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from './supabaseClient';
 import { PLANS, type PlanId as PackageTier } from './plans';
 
 export const ClientLogin: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [isSignUp, setIsSignUp] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState<PackageTier>('pro');
@@ -27,6 +28,78 @@ export const ClientLogin: React.FC = () => {
       if (hadDark) root.classList.add('dark');
     };
   }, []);
+
+  // Capturar errores o cancelaciones devueltos por OAuth (Google / Facebook) en la URL
+  useEffect(() => {
+    const oauthError = searchParams.get('error');
+    const oauthErrorDesc = searchParams.get('error_description');
+
+    if (oauthError || oauthErrorDesc) {
+      if (oauthError === 'access_denied') {
+        setErrorMsg('Inicio de sesión cancelado. Puedes intentarlo de nuevo cuando quieras.');
+      } else {
+        setErrorMsg(
+          decodeURIComponent((oauthErrorDesc || oauthError || '').replace(/\+/g, ' '))
+        );
+      }
+
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete('error');
+      nextParams.delete('error_code');
+      nextParams.delete('error_description');
+      setSearchParams(nextParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
+  // Detectar sesión activa (incluido el retorno desde Google / Facebook) y redirigir al panel
+  useEffect(() => {
+    let isMounted = true;
+
+    const redirectAuthenticatedUser = async (userId: string) => {
+      try {
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', userId)
+          .maybeSingle();
+
+        if (profileError && profileError.code !== 'PGRST116') {
+          console.error('Error fetching profile role:', profileError);
+        }
+
+        if (!isMounted) return;
+
+        if (profile?.role === 'super_admin') {
+          navigate('/super-admin', { replace: true });
+        } else {
+          navigate('/admin', { replace: true });
+        }
+      } catch {
+        if (isMounted) {
+          navigate('/admin', { replace: true });
+        }
+      }
+    };
+
+    // 1. Verificar si ya existe una sesión activa al montar /login
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        redirectAuthenticatedUser(session.user.id);
+      }
+    });
+
+    // 2. Escuchar cuando OAuth complete el intercambio de tokens y establezca la sesión
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
+        redirectAuthenticatedUser(session.user.id);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, [navigate]);
 
   const activePkg = PLANS[selectedPackage] || PLANS['pro'];
   const packageList = Object.values(PLANS);
@@ -107,16 +180,16 @@ export const ClientLogin: React.FC = () => {
             .from('profiles')
             .select('role')
             .eq('id', authData.user.id)
-            .single();
+            .maybeSingle();
 
           if (profileError && profileError.code !== 'PGRST116') {
             console.error('Error fetching profile role:', profileError);
           }
 
           if (profile?.role === 'super_admin') {
-            navigate('/super-admin');
+            navigate('/super-admin', { replace: true });
           } else {
-            navigate('/admin');
+            navigate('/admin', { replace: true });
           }
         }
       }
@@ -134,6 +207,7 @@ export const ClientLogin: React.FC = () => {
   // Función para autenticación con Google o Facebook
   const handleSocialLogin = async (provider: 'google' | 'facebook') => {
     setErrorMsg(null);
+    setSuccessMsg(null);
     const originUrl = getOriginUrl();
     try {
       const { error } = await supabase.auth.signInWithOAuth({
