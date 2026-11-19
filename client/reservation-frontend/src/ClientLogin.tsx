@@ -3,6 +3,20 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from './supabaseClient';
 import { PLANS, type PlanId as PackageTier } from './plans';
 
+export function buildSlugWithRandom(businessName?: string | null, nameChars = 16): string {
+  const cleaned = (businessName ?? '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+  const basePart = (cleaned || 'biz').slice(0, nameChars).replace(/-+$/g, '') || 'biz';
+  const randomPart = Math.random().toString(36).substring(2, 8);
+
+  return `${basePart}-${randomPart}`;
+}
+
 export const ClientLogin: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -104,12 +118,7 @@ export const ClientLogin: React.FC = () => {
   const activePkg = PLANS[selectedPackage] || PLANS['pro'];
   const packageList = Object.values(PLANS);
 
-  const generatedSlug = businessName
-    .toLowerCase()
-    .trim()
-    .replace(/[^\w\s-]/g, '')
-    .replace(/[\s_-]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+  const generatedSlug = buildSlugWithRandom(businessName);
 
   const getOriginUrl = () => {
     const envUrl = import.meta.env.VITE_BASE_URL;
@@ -134,7 +143,7 @@ export const ClientLogin: React.FC = () => {
           full_name: fullName,
           package_tier: selectedPackage,
           business_name: businessName,
-          slug: allowCustomSlug ? generatedSlug : null,
+          slug: allowCustomSlug ? buildSlugWithRandom(businessName) : null,
           max_services: maxServices,
           allow_custom_slug: allowCustomSlug,
           allow_sms_reminders: allowSmsReminders,
