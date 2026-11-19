@@ -60,19 +60,27 @@ const DEFAULT_HOURS: BusinessHours = {
   saturday: { open: '10:00', close: '15:00', closed: false },
 };
 
+const isValidParam = (val?: string | null): val is string => {
+  return Boolean(val && val.trim() !== '' && val !== 'null' && val !== 'undefined');
+};
+
 export const PublicBookingView: React.FC = () => {
   const params = useParams<{ slug?: string; id?: string }>();
   const [searchParams] = useSearchParams();
 
-  const urlSlug = params.slug || searchParams.get('slug');
-  const urlId = params.id || searchParams.get('id');
+  const rawSlug = params.slug || searchParams.get('slug');
+  const rawId = params.id || searchParams.get('id');
+
+  const urlSlug = isValidParam(rawSlug) ? rawSlug.trim() : undefined;
+  const urlId = isValidParam(rawId) ? rawId.trim() : undefined;
 
   const [businessInfo, setBusinessInfo] = useState<BusinessInfo>({
     id: '',
-    name: 'Loading Business...',
+    name: 'Business',
     primary_color: '#7e22ce',
     public_theme: 'light',
   });
+  const [businessNotFound, setBusinessNotFound] = useState<boolean>(false);
 
   // Track subscription tier limits and current monthly usage
   const { isLimitReached, loading: usageLoading } = useBookingUsage(businessInfo.id);
@@ -110,7 +118,10 @@ export const PublicBookingView: React.FC = () => {
   // Turnstile Security Token & Instance Ref
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const turnstileRef = useRef<TurnstileInstance>(null);
-  const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || import.meta.env.REACT_APP_TURNSTILE_SITE_KEY || '1x00000000000000000000AA';
+  const TURNSTILE_SITE_KEY =
+    import.meta.env.VITE_TURNSTILE_SITE_KEY ||
+    import.meta.env.REACT_APP_TURNSTILE_SITE_KEY ||
+    '1x00000000000000000000AA';
 
   // Aplicar el tema público y limpiar al desmontar
   useEffect(() => {
@@ -145,32 +156,74 @@ export const PublicBookingView: React.FC = () => {
 
   // Fetch Business
   useEffect(() => {
+    let isCancelled = false;
+
     const fetchBusiness = async () => {
       setFetchingBusiness(true);
+      setBusinessNotFound(false);
       setMessage(null);
+      setBusinessInfo((prev) => ({
+        id: '',
+        name: 'Loading business...',
+        primary_color: prev.primary_color || '#7e22ce',
+        public_theme: prev.public_theme || 'light',
+      }));
+      setLocations([]);
+      setSelectedLocation('');
+      setStaffMembers([]);
+      setSelectedStaff('');
+      setServices([]);
+      setSelectedService('');
+      setSelectedSlot('');
 
       try {
         let foundBusiness: BusinessInfo | null = null;
 
         if (urlSlug) {
-          const { data: bSlug } = await supabase
+          const { data: bSlug, error: slugErr } = await supabase
             .from('businesses')
             .select('id, name, logo_url, header_image_url, primary_color, business_hours, public_theme')
             .eq('slug', urlSlug)
             .maybeSingle();
 
+          if (slugErr) throw slugErr;
           if (bSlug) foundBusiness = bSlug;
         }
 
         if (!foundBusiness && urlId) {
-          const { data: bId } = await supabase
+          const { data: bId, error: idErr } = await supabase
             .from('businesses')
             .select('id, name, logo_url, header_image_url, primary_color, business_hours, public_theme')
             .eq('id', urlId)
             .maybeSingle();
 
+          if (idErr) throw idErr;
           if (bId) foundBusiness = bId;
         }
+
+        // Respaldo: si el identificador pasado es un slug o id en profiles
+        if (!foundBusiness && (urlSlug || urlId)) {
+          const identifier = urlSlug || urlId!;
+          const { data: profileMatch } = await supabase
+            .from('profiles')
+            .select('id, slug, business_name, full_name')
+            .or(`slug.eq.${identifier},id.eq.${identifier}`)
+            .maybeSingle();
+
+          if (profileMatch) {
+            const { data: bByProfile } = await supabase
+              .from('businesses')
+              .select('id, name, logo_url, header_image_url, primary_color, business_hours, public_theme')
+              .or(`id.eq.${profileMatch.id},owner_id.eq.${profileMatch.id},user_id.eq.${profileMatch.id}`)
+              .maybeSingle();
+
+            if (bByProfile) {
+              foundBusiness = bByProfile;
+            }
+          }
+        }
+
+        if (isCancelled) return;
 
         if (foundBusiness) {
           setBusinessInfo({
@@ -182,7 +235,15 @@ export const PublicBookingView: React.FC = () => {
             business_hours: foundBusiness.business_hours || DEFAULT_HOURS,
             public_theme: foundBusiness.public_theme || 'light',
           });
+          setBusinessNotFound(false);
         } else {
+          setBusinessInfo({
+            id: '',
+            name: 'Business',
+            primary_color: '#7e22ce',
+            public_theme: 'light',
+          });
+          setBusinessNotFound(true);
           setMessage({
             type: 'error',
             text: 'Business not found. Please check your booking link.',
@@ -190,12 +251,31 @@ export const PublicBookingView: React.FC = () => {
         }
       } catch (err) {
         console.error('Error loading business details:', err);
+        if (!isCancelled) {
+          setBusinessInfo({
+            id: '',
+            name: 'Business',
+            primary_color: '#7e22ce',
+            public_theme: 'light',
+          });
+          setBusinessNotFound(true);
+          setMessage({
+            type: 'error',
+            text: 'Could not load business details. Please try again later.',
+          });
+        }
       } finally {
-        setFetchingBusiness(false);
+        if (!isCancelled) {
+          setFetchingBusiness(false);
+        }
       }
     };
 
     fetchBusiness();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [urlSlug, urlId]);
 
   // Fetch Locations
@@ -359,7 +439,7 @@ export const PublicBookingView: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedSlot) return;
+    if (!selectedSlot || !businessInfo.id) return;
 
     if (locations.length > 0 && !selectedLocation) {
       setMessage({ type: 'error', text: 'Please select a location branch.' });
@@ -475,7 +555,6 @@ export const PublicBookingView: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100 pb-12 transition-colors">
-      
       {/* Estilos CSS inyectados para forzar la visibilidad del icono de calendario y prevenir el fondo gris de Autofill */}
       <style>{`
         input[type="date"]::-webkit-calendar-picker-indicator {
@@ -514,7 +593,6 @@ export const PublicBookingView: React.FC = () => {
 
       <div className="max-w-2xl mx-auto px-4 -mt-20 relative z-10">
         <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-xl shadow-lg font-sans border border-gray-100 dark:border-slate-800 transition-colors">
-          
           {/* Logo & Business Name */}
           <div className="flex flex-col items-center text-center mb-6">
             {businessInfo.logo_url ? (
@@ -532,31 +610,38 @@ export const PublicBookingView: React.FC = () => {
               </div>
             )}
 
-            <h1 className="text-2xl font-extrabold text-gray-900 dark:text-slate-100 mt-3">{businessInfo.name}</h1>
+            <h1 className="text-2xl font-extrabold text-gray-900 dark:text-slate-100 mt-3">
+              {fetchingBusiness ? 'Loading business...' : businessInfo.name}
+            </h1>
             <p className="text-sm font-medium text-gray-500 dark:text-slate-400 mt-1">Book an Appointment</p>
           </div>
 
-          {isLimitReached && (
+          {isLimitReached && !businessNotFound && (
             <div className="p-4 mb-6 bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-sm rounded-lg text-center font-medium">
               This business is currently not accepting new online appointments for the remainder of this month as it has reached its monthly booking capacity.
             </div>
           )}
 
           {message && (
-            <div className={`p-4 mb-6 text-sm rounded-lg ${
-              message.type === 'success'
-                ? 'bg-green-100 dark:bg-green-950/60 text-green-700 dark:text-green-300'
-                : 'bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-300'
-            }`}>
+            <div
+              className={`p-4 mb-6 text-sm rounded-lg ${
+                message.type === 'success'
+                  ? 'bg-green-100 dark:bg-green-950/60 text-green-700 dark:text-green-300'
+                  : 'bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-300'
+              }`}
+            >
               {message.text}
             </div>
           )}
 
           {fetchingBusiness || usageLoading ? (
             <div className="p-8 text-center text-gray-500 dark:text-slate-400">Loading booking options...</div>
+          ) : businessNotFound ? (
+            <div className="p-6 text-center text-sm text-gray-500 dark:text-slate-400">
+              Please verify that the business profile and booking link are configured.
+            </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
-              
               {locations.length > 0 && (
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">
