@@ -223,6 +223,7 @@ export const ClientLogin: React.FC = () => {
         provider,
         options: {
           redirectTo: `${originUrl}/admin`,
+          ...(provider === 'facebook' ? { scopes: 'email,public_profile' } : {}),
         },
       });
       if (error) throw error;
