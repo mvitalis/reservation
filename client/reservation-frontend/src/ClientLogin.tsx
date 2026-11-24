@@ -95,14 +95,12 @@ export const ClientLogin: React.FC = () => {
       }
     };
 
-    // 1. Verificar si ya existe una sesión activa al montar /login
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         redirectAuthenticatedUser(session.user.id);
       }
     });
 
-    // 2. Escuchar cuando OAuth complete el intercambio de tokens y establezca la sesión
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
         redirectAuthenticatedUser(session.user.id);
@@ -233,7 +231,7 @@ export const ClientLogin: React.FC = () => {
   };
 
   return (
-    <div className="light-theme min-h-screen bg-slate-50 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 text-slate-900">
+    <div className="light-theme w-full min-h-screen overflow-x-hidden bg-slate-50 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 text-slate-900">
       <div className="sm:mx-auto sm:w-full sm:max-w-3xl">
         <h2 className="text-center text-3xl font-extrabold text-slate-900">
           {isSignUp ? 'Create your business account' : 'Sign in to your account'}

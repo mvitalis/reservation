@@ -114,7 +114,7 @@ function CustomerPreviewWrapper() {
 
   if (!resolved) {
     return (
-      <div className="p-8 text-center text-sm text-gray-500 dark:text-slate-400">
+      <div className="w-full p-8 text-center text-sm text-gray-500 dark:text-slate-400">
         Loading customer preview...
       </div>
     );
@@ -148,8 +148,8 @@ function AdminLayout({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-200">
-      <nav className="bg-purple-900 text-white p-3 shadow-sm relative z-50">
+    <div className="w-full min-h-screen overflow-x-hidden bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-200">
+      <nav className="w-full bg-purple-900 text-white p-3 shadow-sm relative z-50">
         <div className="max-w-7xl mx-auto flex justify-between items-center text-sm">
           <span className="font-bold tracking-wide">Reservation Manager Pro</span>
 
@@ -252,7 +252,7 @@ function AdminLayout({ children }: { children: React.ReactNode }) {
         )}
       </nav>
 
-      <main>{children}</main>
+      <main className="w-full">{children}</main>
 
       {/* Modal flotante de advertencia por inactividad */}
       <InactivityModal

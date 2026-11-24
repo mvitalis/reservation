@@ -1,3 +1,30 @@
+/* Base y ancho completo para evitar franjas oscuras laterales en modo claro */
+html,
+body,
+#root {
+  min-height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+html:not(.dark),
+html:not(.dark) body,
+html:not(.dark) #root {
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+html.dark,
+html.dark body,
+html.dark #root {
+  background-color: #0f172a;
+  color: #f8fafc;
+}
+
 .counter {
   font-size: 16px;
   padding: 5px 10px;
@@ -182,13 +209,13 @@
     border-right-color: var(--border);
   }
 }
-/* index.css */
+
 @layer utilities {
   /* Automatically invert background containers */
   html.dark .bg-white {
     background-color: #1e293b !important; /* slate-800 */
   }
-  
+
   html.dark .bg-gray-50 {
     background-color: #0f172a !important; /* slate-900 */
   }

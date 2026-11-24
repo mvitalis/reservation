@@ -576,7 +576,7 @@ export const PublicBookingView: React.FC<PublicBookingViewProps> = ({
   const now = new Date();
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100 pb-12 transition-colors">
+    <div className="w-full min-h-screen overflow-x-hidden bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100 pb-12 transition-colors">
       {/* Estilos CSS inyectados para forzar la visibilidad del icono de calendario y prevenir el fondo gris de Autofill */}
       <style>{`
         input[type="date"]::-webkit-calendar-picker-indicator {
