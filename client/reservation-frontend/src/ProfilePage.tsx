@@ -1,15 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
 import { supabase } from './supabaseClient';
 import { PLANS, type PlanId as PackageTier } from './plans';
-import { 
-  Building, 
-  Lock, 
-  Phone, 
-  Bell, 
-  CheckCircle2, 
-  AlertCircle, 
+import {
+  Building,
+  Lock,
+  Phone,
+  Bell,
+  CheckCircle2,
+  AlertCircle,
   ShieldAlert,
   Save,
   CreditCard,
@@ -18,7 +17,7 @@ import {
   Clock,
   Palette,
   Image,
-  Sparkles
+  Sparkles,
 } from 'lucide-react';
 
 interface DaySchedule {
@@ -44,6 +43,7 @@ const DEFAULT_HOURS: BusinessHours = {
 };
 
 interface UserProfileData {
+  businessId: string | null;
   usernameEmail: string;
   businessName: string;
   phone: string;
@@ -58,22 +58,33 @@ interface UserProfileData {
   publicTheme: 'light' | 'dark' | 'system';
 }
 
+function createInitialSlug(businessName?: string | null): string {
+  const cleaned = (businessName ?? '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+  const basePart = cleaned.slice(0, 16).replace(/-+$/g, '') || 'biz';
+  const randomPart = Math.random().toString(36).substring(2, 8);
+  return `${basePart}-${randomPart}`;
+}
+
 export const ProfilePage: React.FC = () => {
-  const navigate = useNavigate();
   const [loading, setLoading] = useState<boolean>(true);
   const [savingProfile, setSavingProfile] = useState<boolean>(false);
   const [updatingPassword, setUpdatingPassword] = useState<boolean>(false);
   const [updatingPlan, setUpdatingPlan] = useState<boolean>(false);
 
-  // Estado para el plan seleccionado que se desea comprar/renovar
   const [targetPlan, setTargetPlan] = useState<PackageTier>('pro');
 
-  // Profile Form State
   const [profile, setProfile] = useState<UserProfileData>({
+    businessId: null,
     usernameEmail: '',
     businessName: '',
     phone: '',
-    slug: '', 
+    slug: '',
     notificationEmail: '',
     selectedPackage: 'starter',
     subscriptionExpiresAt: null,
@@ -84,13 +95,11 @@ export const ProfilePage: React.FC = () => {
     publicTheme: 'light',
   });
 
-  // Password State
   const [passwords, setPasswords] = useState({
     newPassword: '',
     confirmPassword: '',
   });
 
-  // Alert State
   const [message, setMessage] = useState<{
     type: 'success' | 'error';
     text: string;
@@ -98,6 +107,8 @@ export const ProfilePage: React.FC = () => {
 
   // Load User and Business Data
   useEffect(() => {
+    let isMounted = true;
+
     const fetchUserData = async () => {
       setLoading(true);
       setMessage(null);
@@ -106,28 +117,51 @@ export const ProfilePage: React.FC = () => {
         const { data: { user }, error: authError } = await supabase.auth.getUser();
 
         if (authError || !user) {
-          setMessage({ type: 'error', text: 'Failed to authenticate user.' });
-          setLoading(false);
+          if (isMounted) {
+            setMessage({ type: 'error', text: 'Failed to authenticate user.' });
+            setLoading(false);
+          }
           return;
         }
 
-        const { data: business, error: bizError } = await supabase
+        // Buscar por owner_id; si no hay coincidencia, intentar por id = user.id
+        let { data: business, error: bizError } = await supabase
           .from('businesses')
-          .select('name, phone, slug, notification_email, package_tier, subscription_expires_at, business_hours, logo_url, header_image_url, primary_color, public_theme')
+          .select('id, name, phone, slug, notification_email, package_tier, subscription_expires_at, business_hours, logo_url, header_image_url, primary_color, public_theme')
           .eq('owner_id', user.id)
           .maybeSingle();
 
         if (bizError) {
-          console.error('Error fetching business info:', bizError);
+          console.error('Error fetching business info by owner_id:', bizError);
         }
 
+        if (!business) {
+          const { data: byIdBiz, error: byIdErr } = await supabase
+            .from('businesses')
+            .select('id, name, phone, slug, notification_email, package_tier, subscription_expires_at, business_hours, logo_url, header_image_url, primary_color, public_theme')
+            .eq('id', user.id)
+            .maybeSingle();
+
+          if (byIdErr) {
+            console.error('Error fetching business info by id:', byIdErr);
+          }
+          if (byIdBiz) {
+            business = byIdBiz;
+          }
+        }
+
+        if (!isMounted) return;
+
         const userPackage = (business?.package_tier || user.user_metadata?.selected_package || 'starter') as PackageTier;
+        const resolvedName = business?.name || user.user_metadata?.business_name || '';
+        const resolvedSlug = business?.slug || (typeof user.user_metadata?.slug === 'string' ? user.user_metadata.slug : '') || '';
 
         setProfile({
+          businessId: business?.id || null,
           usernameEmail: user.email || '',
-          businessName: business?.name || '',
+          businessName: resolvedName,
           phone: business?.phone || '',
-          slug: business?.slug || '',
+          slug: resolvedSlug,
           notificationEmail: business?.notification_email || user.email || '',
           selectedPackage: userPackage,
           subscriptionExpiresAt: business?.subscription_expires_at || null,
@@ -140,13 +174,21 @@ export const ProfilePage: React.FC = () => {
         setTargetPlan(userPackage === 'starter' ? 'pro' : userPackage);
       } catch (err) {
         console.error('Unexpected error loading profile:', err);
-        setMessage({ type: 'error', text: 'Error loading profile settings.' });
+        if (isMounted) {
+          setMessage({ type: 'error', text: 'Error loading profile settings.' });
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchUserData();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const handleToggleClosed = (day: string) => {
@@ -184,25 +226,84 @@ export const ProfilePage: React.FC = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No active session.');
 
-      const currentSlug = profile.slug || profile.businessName.toLowerCase().replace(/[^a-z0-9]/g, '-');
-      const { error } = await supabase
-        .from('businesses')
-        .upsert({
-          owner_id: user.id,
-          name: profile.businessName,
-          phone: profile.phone,
-          slug: currentSlug,
-          notification_email: profile.notificationEmail,
-          business_hours: profile.businessHours,
-          logo_url: profile.logoUrl || null,
-          header_image_url: profile.headerImageUrl || null,
-          primary_color: profile.primaryColor,
-          public_theme: profile.publicTheme,
-        }, { onConflict: 'owner_id' });
+      // Mantener el slug existente si ya existe; generar solo si no tiene ninguno
+      const stableSlug = profile.slug.trim() || createInitialSlug(profile.businessName);
 
-      if (error) throw error;
+      const payload = {
+        name: profile.businessName.trim(),
+        phone: profile.phone.trim() || null,
+        slug: stableSlug,
+        notification_email: profile.notificationEmail.trim(),
+        business_hours: profile.businessHours,
+        logo_url: profile.logoUrl.trim() || null,
+        header_image_url: profile.headerImageUrl.trim() || null,
+        primary_color: profile.primaryColor,
+        public_theme: profile.publicTheme,
+      };
 
-      setMessage({ type: 'success', text: 'Profile settings, branding, operating hours, and public theme updated successfully!' });
+      if (profile.businessId) {
+        const { error: updateErr } = await supabase
+          .from('businesses')
+          .update(payload)
+          .eq('id', profile.businessId);
+
+        if (updateErr) throw updateErr;
+      } else {
+        // Verificar si existe por owner_id antes de insertar
+        const { data: existingByOwner } = await supabase
+          .from('businesses')
+          .select('id, slug')
+          .eq('owner_id', user.id)
+          .maybeSingle();
+
+        if (existingByOwner) {
+          const { error: updateOwnerErr } = await supabase
+            .from('businesses')
+            .update({
+              ...payload,
+              slug: existingByOwner.slug || stableSlug,
+            })
+            .eq('id', existingByOwner.id);
+
+          if (updateOwnerErr) throw updateOwnerErr;
+
+          setProfile((prev) => ({
+            ...prev,
+            businessId: existingByOwner.id,
+            slug: existingByOwner.slug || stableSlug,
+          }));
+        } else {
+          const { data: insertedBiz, error: insertErr } = await supabase
+            .from('businesses')
+            .insert([
+              {
+                owner_id: user.id,
+                package_tier: profile.selectedPackage || 'starter',
+                ...payload,
+              },
+            ])
+            .select('id, slug')
+            .single();
+
+          if (insertErr) throw insertErr;
+
+          setProfile((prev) => ({
+            ...prev,
+            businessId: insertedBiz?.id || null,
+            slug: insertedBiz?.slug || stableSlug,
+          }));
+        }
+      }
+
+      setProfile((prev) => ({
+        ...prev,
+        slug: prev.slug || stableSlug,
+      }));
+
+      setMessage({
+        type: 'success',
+        text: 'Profile settings, branding, operating hours, and public theme updated successfully!',
+      });
     } catch (err: any) {
       console.error('Save profile error:', err);
       setMessage({ type: 'error', text: err.message || 'Failed to save profile changes.' });
@@ -225,14 +326,17 @@ export const ProfilePage: React.FC = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No active user session.');
 
+      const matchColumn = profile.businessId ? 'id' : 'owner_id';
+      const matchValue = profile.businessId || user.id;
+
       const { error } = await supabase
         .from('businesses')
-        .update({ 
+        .update({
           package_tier: 'starter',
           subscription_expires_at: null,
-          renewal_reminder_sent: false
+          renewal_reminder_sent: false,
         })
-        .eq('owner_id', user.id);
+        .eq(matchColumn, matchValue);
 
       if (error) throw error;
 
@@ -300,12 +404,11 @@ export const ProfilePage: React.FC = () => {
       options={{
         clientId: 'BAA1egOcwl_6giFBDt96jkkPIHeork6b_VIxvdibRlLEiuLwwaWz5Q4C-qmadXpgrYLhnHX3_hsdp8EN6w',
         currency: 'USD',
-        intent: 'capture', // Pago único de 30 días
+        intent: 'capture',
       }}
     >
       <div className="min-h-screen bg-gray-50 dark:bg-slate-950 py-10 px-4 sm:px-6 text-slate-900 dark:text-slate-100 font-sans">
         <div className="max-w-3xl mx-auto space-y-8">
-          
           {/* Page Header */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700">
             <div>
@@ -398,7 +501,7 @@ export const ProfilePage: React.FC = () => {
                       <span className="text-xs font-semibold text-purple-600 dark:text-purple-400">{pkg.price}</span>
                     </div>
                     <p className="text-xs text-gray-500 dark:text-slate-400 mb-3">{pkg.description}</p>
-                    
+
                     {isCurrentActive && (
                       <span className="inline-flex items-center text-xs font-semibold text-green-700 dark:text-green-300">
                         <CheckCircle2 className="w-3.5 h-3.5 mr-1 text-green-600" /> Plan Actual
@@ -409,7 +512,6 @@ export const ProfilePage: React.FC = () => {
               })}
             </div>
 
-            {/* PayPal Checkout para Pago Único de 30 Días */}
             {targetPlan !== 'starter' && (
               <div className="bg-gray-50 dark:bg-slate-900 p-4 rounded-xl border border-gray-200 dark:border-slate-700 space-y-3">
                 <div className="flex justify-between items-center">
@@ -424,7 +526,7 @@ export const ProfilePage: React.FC = () => {
                   style={{ layout: 'vertical', color: 'gold', shape: 'rect' }}
                   createOrder={(_data, actions) => {
                     const numericPrice = selectedPkgConfig.price.replace(/[^0-9.]/g, '');
-                    
+
                     if (!actions.order) {
                       return Promise.reject(new Error('PayPal order actions not available'));
                     }
@@ -447,12 +549,15 @@ export const ProfilePage: React.FC = () => {
 
                     try {
                       const details = await actions.order.capture();
-                      
+
                       const expiresAt = new Date();
                       expiresAt.setDate(expiresAt.getDate() + 30);
 
                       const { data: { user } } = await supabase.auth.getUser();
                       if (!user) throw new Error('No active user session.');
+
+                      const matchColumn = profile.businessId ? 'id' : 'owner_id';
+                      const matchValue = profile.businessId || user.id;
 
                       const { error } = await supabase
                         .from('businesses')
@@ -462,7 +567,7 @@ export const ProfilePage: React.FC = () => {
                           renewal_reminder_sent: false,
                           paypal_order_id: details.id,
                         })
-                        .eq('owner_id', user.id);
+                        .eq(matchColumn, matchValue);
 
                       if (error) throw error;
 
@@ -531,6 +636,20 @@ export const ProfilePage: React.FC = () => {
                   <Building className="w-4 h-4 text-gray-400 dark:text-slate-500 absolute left-3 top-3.5" />
                 </div>
               </div>
+
+              {profile.slug && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wide mb-1">
+                    Booking Slug (Permanent)
+                  </label>
+                  <input
+                    type="text"
+                    value={profile.slug}
+                    disabled
+                    className="w-full p-3 border border-gray-200 dark:border-slate-700 bg-gray-100 dark:bg-slate-900 text-gray-500 dark:text-slate-400 rounded-lg cursor-not-allowed font-mono text-sm"
+                  />
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wide mb-1">
@@ -765,7 +884,6 @@ export const ProfilePage: React.FC = () => {
               <span>{updatingPassword ? 'Updating Password...' : 'Update Password'}</span>
             </button>
           </form>
-
         </div>
       </div>
     </PayPalScriptProvider>
