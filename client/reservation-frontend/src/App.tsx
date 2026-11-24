@@ -348,3 +348,4 @@ function App() {
     </PayPalScriptProvider>
   );
 }
+export default App;
