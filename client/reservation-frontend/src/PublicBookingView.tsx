@@ -69,6 +69,8 @@ const isValidParam = (val?: string | null): val is string => {
   return Boolean(val && val.trim() !== '' && val !== 'null' && val !== 'undefined');
 };
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export const PublicBookingView: React.FC<PublicBookingViewProps> = ({
   fallbackSlug,
   fallbackId,
@@ -198,7 +200,7 @@ export const PublicBookingView: React.FC<PublicBookingViewProps> = ({
           if (bSlug) foundBusiness = bSlug;
         }
 
-        if (!foundBusiness && urlId) {
+        if (!foundBusiness && urlId && UUID_REGEX.test(urlId)) {
           const { data: bId, error: idErr } = await supabase
             .from('businesses')
             .select('id, name, logo_url, header_image_url, primary_color, business_hours, public_theme')
@@ -212,10 +214,14 @@ export const PublicBookingView: React.FC<PublicBookingViewProps> = ({
         // Respaldo: si el identificador pasado es un slug o id en profiles
         if (!foundBusiness && (urlSlug || urlId)) {
           const identifier = urlSlug || urlId!;
+          const filterQuery = UUID_REGEX.test(identifier)
+            ? `slug.eq.${identifier},id.eq.${identifier}`
+            : `slug.eq.${identifier}`;
+
           const { data: profileMatch } = await supabase
             .from('profiles')
             .select('id, slug, business_name, full_name')
-            .or(`slug.eq.${identifier},id.eq.${identifier}`)
+            .or(filterQuery)
             .maybeSingle();
 
           if (profileMatch) {
@@ -231,7 +237,7 @@ export const PublicBookingView: React.FC<PublicBookingViewProps> = ({
               }
             }
 
-            if (!foundBusiness) {
+            if (!foundBusiness && profileMatch.id && UUID_REGEX.test(profileMatch.id)) {
               const { data: bById } = await supabase
                 .from('businesses')
                 .select('id, name, logo_url, header_image_url, primary_color, business_hours, public_theme')

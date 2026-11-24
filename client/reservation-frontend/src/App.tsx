@@ -30,7 +30,23 @@ function CustomerPreviewWrapper() {
         const { data: { user } } = await supabase.auth.getUser();
 
         if (user) {
-          // 1. Buscar negocio donde id coincida con user.id
+          // 1. Buscar negocio donde owner_id coincida con user.id
+          const { data: ownerBusiness } = await supabase
+            .from('businesses')
+            .select('id, slug')
+            .eq('owner_id', user.id)
+            .maybeSingle();
+
+          if (ownerBusiness) {
+            if (isMounted) {
+              setPreviewSlug(ownerBusiness.slug || null);
+              setPreviewId(ownerBusiness.id);
+              setResolved(true);
+            }
+            return;
+          }
+
+          // 2. Respaldo directo: negocio donde id coincida con user.id
           const { data: directBusiness } = await supabase
             .from('businesses')
             .select('id, slug')
@@ -46,7 +62,7 @@ function CustomerPreviewWrapper() {
             return;
           }
 
-          // 2. Respaldo desde profiles o user_metadata usando slug
+          // 3. Respaldo desde profiles o user_metadata usando slug
           const { data: profile } = await supabase
             .from('profiles')
             .select('id, slug')
@@ -74,7 +90,7 @@ function CustomerPreviewWrapper() {
             }
           }
 
-          // 3. Respaldo con el id del perfil/usuario si no se encontró por slug directo
+          // 4. Respaldo con el id del perfil/usuario si no se encontró por slug directo
           if (profile) {
             if (isMounted) {
               setPreviewSlug(profile.slug || null);
@@ -85,7 +101,7 @@ function CustomerPreviewWrapper() {
           }
         }
 
-        // 4. Respaldo general: primer negocio disponible en la tabla businesses
+        // 5. Respaldo general: primer negocio disponible en la tabla businesses
         const { data: fallbackBusiness } = await supabase
           .from('businesses')
           .select('id, slug')
@@ -332,5 +348,3 @@ function App() {
     </PayPalScriptProvider>
   );
 }
-
-export default App;
