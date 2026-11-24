@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from './supabaseClient';
 import { PLANS, type PlanId as PackageTier } from './plans';
@@ -116,7 +116,8 @@ export const ClientLogin: React.FC = () => {
   const activePkg = PLANS[selectedPackage] || PLANS['pro'];
   const packageList = Object.values(PLANS);
 
-  const generatedSlug = buildSlugWithRandom(businessName);
+  // Slug estable para el nombre de negocio actual (no cambia en cada render)
+  const generatedSlug = useMemo(() => buildSlugWithRandom(businessName), [businessName]);
 
   const getOriginUrl = () => {
     const envUrl = import.meta.env.VITE_BASE_URL;
@@ -141,7 +142,7 @@ export const ClientLogin: React.FC = () => {
           full_name: fullName,
           package_tier: selectedPackage,
           business_name: businessName,
-          slug: allowCustomSlug ? buildSlugWithRandom(businessName) : null,
+          slug: allowCustomSlug ? generatedSlug : null,
           max_services: maxServices,
           allow_custom_slug: allowCustomSlug,
           allow_sms_reminders: allowSmsReminders,
