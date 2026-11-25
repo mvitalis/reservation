@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { PayPalButtons } from '@paypal/react-paypal-js';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from './supabaseClient';
 import { PLANS, type PlanId as PackageTier } from './plans';
 import {
@@ -190,6 +189,114 @@ export const ProfilePage: React.FC = () => {
       isMounted = false;
     };
   }, []);
+
+  // Procesar retorno de WiPay desde la URL en Vercel
+  const handleWiPayReturn = useCallback(async () => {
+    const params = new URLSearchParams(window.location.search);
+    const status = params.get('status');
+    const transactionId = params.get('transaction_id');
+    const orderId = params.get('order_id');
+    const total = params.get('total');
+    const hash = params.get('hash');
+
+    if (!status && !transactionId && !orderId) return;
+
+    // Limpia los query params de la URL para evitar reprocesar al recargar
+    window.history.replaceState({}, '', window.location.pathname);
+
+    if (!status || status.toLowerCase() !== 'success') {
+      setMessage({
+        type: 'error',
+        text: 'El pago en WiPay no se completó o fue cancelado.',
+      });
+      return;
+    }
+
+    setUpdatingPlan(true);
+    setMessage(null);
+
+    try {
+      const { data: result, error } = await supabase.functions.invoke('wipay-order', {
+        body: {
+          action: 'verify',
+          status,
+          transactionId,
+          orderId,
+          total,
+          hash,
+          businessId: profile.businessId,
+        },
+      });
+
+      if (error || !result?.success) {
+        throw new Error(error?.message || result?.error || 'No se pudo verificar el pago de WiPay.');
+      }
+
+      const activatedTier = (result.packageTier || targetPlan) as PackageTier;
+      const nextExpiresAt =
+        result.subscriptionExpiresAt ||
+        new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
+      setProfile((prev) => ({
+        ...prev,
+        selectedPackage: activatedTier,
+        subscriptionExpiresAt: nextExpiresAt,
+      }));
+
+      setMessage({
+        type: 'success',
+        text: '¡Pago con WiPay confirmado! Tu plan ha sido activado/extendido por 30 días.',
+      });
+    } catch (err: any) {
+      console.error('WiPay return verification error:', err);
+      setMessage({
+        type: 'error',
+        text: err?.message || 'El pago no pudo verificarse.',
+      });
+    } finally {
+      setUpdatingPlan(false);
+    }
+  }, [profile.businessId, targetPlan]);
+
+  useEffect(() => {
+    if (!loading) {
+      handleWiPayReturn();
+    }
+  }, [loading, handleWiPayReturn]);
+
+  // Iniciar sesión de pago en WiPay
+  const handleWiPayCheckout = async () => {
+    if (targetPlan === 'starter') return;
+
+    setUpdatingPlan(true);
+    setMessage(null);
+
+    try {
+      const returnUrl = `${window.location.origin}/profile`;
+
+      const { data, error } = await supabase.functions.invoke('wipay-order', {
+        body: {
+          action: 'create',
+          planId: targetPlan,
+          businessId: profile.businessId,
+          returnUrl,
+        },
+      });
+
+      if (error || !data?.url) {
+        throw new Error(error?.message || data?.error || 'No se pudo generar el enlace de pago de WiPay.');
+      }
+
+      window.location.href = data.url;
+    } catch (err: any) {
+      console.error('WiPay checkout error:', err);
+      setMessage({
+        type: 'error',
+        text: err?.message || 'Error al redirigir a WiPay.',
+      });
+      setUpdatingPlan(false);
+    }
+  };
 
   const handleToggleClosed = (day: string) => {
     setProfile((prev) => ({
@@ -457,7 +564,7 @@ export const ProfilePage: React.FC = () => {
           </div>
         </div>
 
-        {/* SECTION 2: Subscription & Plan Management with PayPal */}
+        {/* SECTION 2: Subscription & Plan Management with WiPay */}
         <div className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-xl shadow-md border border-gray-100 dark:border-slate-700 space-y-6">
           <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-slate-700">
             <div className="flex items-center gap-2">
@@ -514,85 +621,19 @@ export const ProfilePage: React.FC = () => {
                 </span>
               </div>
 
-              <PayPalButtons
-                key={`paypal-payment-${targetPlan}-${numericPrice}`}
-                style={{ layout: 'vertical', color: 'gold', shape: 'rect' }}
-                createOrder={async () => {
-                  setMessage(null);
-
-                  const { data, error } = await supabase.functions.invoke('paypal-order', {
-                    body: {
-                      action: 'create',
-                      planId: targetPlan,
-                    },
-                  });
-
-                  if (error || !data?.id) {
-                    console.error('Error creando orden PayPal en Edge Function:', { error, data });
-                    throw new Error(error?.message || data?.error || 'No se pudo crear la orden en PayPal.');
-                  }
-
-                  return data.id;
-                }}
-                onApprove={async (data) => {
-                  setUpdatingPlan(true);
-                  try {
-                    const { data: result, error } = await supabase.functions.invoke('paypal-order', {
-                      body: {
-                        action: 'capture',
-                        orderId: data.orderID,
-                        planId: targetPlan,
-                        businessId: profile.businessId,
-                      },
-                    });
-
-                    if (error || !result?.success) {
-                      console.error('Error capturando orden PayPal en Edge Function:', { error, result });
-                      throw new Error(error?.message || result?.error || 'No se pudo confirmar el pago.');
-                    }
-
-                    const nextExpiresAt =
-                      result.subscriptionExpiresAt ||
-                      new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-
-                    setProfile((prev) => ({
-                      ...prev,
-                      selectedPackage: targetPlan,
-                      subscriptionExpiresAt: nextExpiresAt,
-                    }));
-
-                    setMessage({
-                      type: 'success',
-                      text: '¡Pago exitoso! Tu plan ha sido activado/extendido por 30 días.',
-                    });
-                  } catch (err: any) {
-                    console.error('Error al procesar/capturar pago PayPal:', err);
-                    setMessage({
-                      type: 'error',
-                      text:
-                        err?.message ||
-                        'El pago no pudo completarse o hubo un error al actualizar tu cuenta.',
-                    });
-                  } finally {
-                    setUpdatingPlan(false);
-                  }
-                }}
-                onCancel={() => {
-                  setUpdatingPlan(false);
-                  setMessage({
-                    type: 'error',
-                    text: 'El pago con PayPal fue cancelado antes de completarse.',
-                  });
-                }}
-                onError={(err: any) => {
-                  setUpdatingPlan(false);
-                  console.error('PayPal Button Error:', err);
-                  setMessage({
-                    type: 'error',
-                    text: 'El pago con PayPal no pudo completarse.',
-                  });
-                }}
-              />
+              <button
+                type="button"
+                disabled={updatingPlan}
+                onClick={handleWiPayCheckout}
+                className="w-full py-3 px-4 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors shadow-md flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+              >
+                <CreditCard className="w-4 h-4" />
+                <span>
+                  {updatingPlan
+                    ? 'Redirigiendo a WiPay...'
+                    : `Pagar con WiPay — ${selectedPkgConfig.name} ($${numericPrice} USD)`}
+                </span>
+              </button>
             </div>
           )}
 
