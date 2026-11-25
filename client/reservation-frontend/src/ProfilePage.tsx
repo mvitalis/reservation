@@ -226,7 +226,6 @@ export const ProfilePage: React.FC = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No active session.');
 
-      // Mantener el slug existente si ya existe; generar solo si no tiene ninguno
       const stableSlug = profile.slug.trim() || createInitialSlug(profile.businessName);
 
       const payload = {
@@ -249,7 +248,6 @@ export const ProfilePage: React.FC = () => {
 
         if (updateErr) throw updateErr;
       } else {
-        // Verificar si existe por owner_id antes de insertar
         const { data: existingByOwner } = await supabase
           .from('businesses')
           .select('id, slug')
@@ -518,13 +516,13 @@ export const ProfilePage: React.FC = () => {
 
               <PayPalButtons
                 key={`paypal-payment-${targetPlan}-${numericPrice}`}
-                forceReRender={[targetPlan, numericPrice]}
                 style={{ layout: 'vertical', color: 'gold', shape: 'rect' }}
-                createOrder={(_data, actions) => {
+                createOrder={async (_data, actions) => {
                   if (!actions.order) {
-                    return Promise.reject(new Error('PayPal order actions not available'));
+                    throw new Error('PayPal order actions not available');
                   }
 
+                  setMessage(null);
                   return actions.order.create({
                     intent: 'CAPTURE',
                     purchase_units: [
@@ -538,11 +536,13 @@ export const ProfilePage: React.FC = () => {
                     ],
                   });
                 }}
-                onApprove={async (_data, actions) => {
+                onApprove={async (data, actions) => {
                   if (!actions.order) return;
 
+                  setUpdatingPlan(true);
                   try {
                     const details = await actions.order.capture();
+                    const orderId = details?.id || data?.orderID || null;
 
                     const expiresAt = new Date();
                     expiresAt.setDate(expiresAt.getDate() + 30);
@@ -559,7 +559,7 @@ export const ProfilePage: React.FC = () => {
                         package_tier: targetPlan,
                         subscription_expires_at: expiresAt.toISOString(),
                         renewal_reminder_sent: false,
-                        paypal_order_id: details.id,
+                        paypal_order_id: orderId,
                       })
                       .eq(matchColumn, matchValue);
 
@@ -576,21 +576,36 @@ export const ProfilePage: React.FC = () => {
                       text: '¡Pago exitoso! Tu plan ha sido activado/extendido por 30 días.',
                     });
                   } catch (err: any) {
-                    console.error('Error al procesar pago:', err);
+                    console.error('Error al procesar/capturar pago PayPal:', {
+                      orderID: data?.orderID,
+                      message: err?.message,
+                      details: err?.details,
+                      raw: err,
+                    });
                     setMessage({
                       type: 'error',
-                      text: err.message || 'El pago no pudo completarse o hubo un error al actualizar tu cuenta.',
+                      text:
+                        err?.message ||
+                        'El pago no pudo completarse o hubo un error al actualizar tu cuenta.',
                     });
+                  } finally {
+                    setUpdatingPlan(false);
                   }
                 }}
                 onCancel={() => {
+                  setUpdatingPlan(false);
                   setMessage({
                     type: 'error',
                     text: 'El pago con PayPal fue cancelado antes de completarse.',
                   });
                 }}
-                onError={(err) => {
-                  console.error('PayPal Error:', err);
+                onError={(err: any) => {
+                  setUpdatingPlan(false);
+                  console.error('PayPal Button Error:', {
+                    message: err?.message,
+                    details: err?.details,
+                    raw: err,
+                  });
                   setMessage({
                     type: 'error',
                     text: 'El pago con PayPal no pudo completarse.',
