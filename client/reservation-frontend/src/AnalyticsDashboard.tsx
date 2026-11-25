@@ -77,14 +77,17 @@ export const AnalyticsDashboard: React.FC<Props> = ({ businessId, onUpgradeClick
   if (isRestricted) {
     return (
       <div className="max-w-4xl mx-auto my-8 p-8 bg-gradient-to-br from-slate-900 to-purple-950 text-white rounded-2xl shadow-xl text-center">
-        <div className="w-16 h-16 bg-purple-500/20 text-purple-400 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold">
+        <div className="w-16 h-16 bg-purple-500/20 text-purple-300 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold">
           🔒
         </div>
-        <h2 className="text-2xl font-extrabold mb-2">Appointment Analytics is a Pro Feature</h2>
-        <p className="text-slate-300 max-w-md mx-auto mb-6 text-sm">
+        <h2 className="text-2xl font-extrabold text-white mb-2">
+          Appointment Analytics is a Pro Feature
+        </h2>
+        <p className="text-slate-200 max-w-md mx-auto mb-6 text-sm">
           Gain full visibility into your business revenue, peak booking periods, and top-performing services by upgrading to a paid tier.
         </p>
         <button
+          type="button"
           onClick={onUpgradeClick}
           className="px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg shadow-lg transition-colors cursor-pointer"
         >
