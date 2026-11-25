@@ -66,6 +66,14 @@ export const AnalyticsDashboard: React.FC<Props> = ({ businessId, onUpgradeClick
   const [range, setRange] = useState<number>(30);
   const { data, loading, isRestricted, plan, error } = useBusinessAnalytics(businessId, range);
 
+  const handleUpgrade = () => {
+    if (onUpgradeClick) {
+      onUpgradeClick();
+      return;
+    }
+    window.location.href = '/profile?upgrade=pro';
+  };
+
   if (loading) {
     return (
       <div className="p-8 text-center text-gray-500 dark:text-slate-400 font-medium animate-pulse">
@@ -88,7 +96,7 @@ export const AnalyticsDashboard: React.FC<Props> = ({ businessId, onUpgradeClick
         </p>
         <button
           type="button"
-          onClick={onUpgradeClick}
+          onClick={handleUpgrade}
           className="px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg shadow-lg transition-colors cursor-pointer"
         >
           Upgrade to Pro

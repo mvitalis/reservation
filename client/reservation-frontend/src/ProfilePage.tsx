@@ -126,6 +126,15 @@ export const ProfilePage: React.FC = () => {
     text: string;
   } | null>(null);
 
+  // Preseleccionar plan si se navega con ?upgrade=pro o ?upgrade=business
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const upgradeParam = params.get('upgrade');
+    if (upgradeParam === 'pro' || upgradeParam === 'business') {
+      setTargetPlan(upgradeParam);
+    }
+  }, []);
+
   // Load User and Business Data
   useEffect(() => {
     let isMounted = true;
@@ -192,7 +201,14 @@ export const ProfilePage: React.FC = () => {
           primaryColor: business?.primary_color || '#7e22ce',
           publicTheme: business?.public_theme || 'light',
         });
-        setTargetPlan(userPackage === 'starter' ? 'pro' : userPackage);
+
+        const params = new URLSearchParams(window.location.search);
+        const upgradeParam = params.get('upgrade');
+        if (upgradeParam === 'pro' || upgradeParam === 'business') {
+          setTargetPlan(upgradeParam);
+        } else {
+          setTargetPlan(userPackage === 'starter' ? 'pro' : userPackage);
+        }
       } catch (err) {
         console.error('Unexpected error loading profile:', err);
         if (isMounted) {
