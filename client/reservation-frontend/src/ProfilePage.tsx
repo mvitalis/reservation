@@ -519,6 +519,7 @@ export const ProfilePage: React.FC = () => {
                 style={{ layout: 'vertical', color: 'gold', shape: 'rect' }}
                 createOrder={async () => {
                   setMessage(null);
+
                   const { data, error } = await supabase.functions.invoke('paypal-order', {
                     body: {
                       action: 'create',
@@ -527,7 +528,8 @@ export const ProfilePage: React.FC = () => {
                   });
 
                   if (error || !data?.id) {
-                    throw new Error(error?.message || 'No se pudo crear la orden en PayPal.');
+                    console.error('Error creando orden PayPal en Edge Function:', { error, data });
+                    throw new Error(error?.message || data?.error || 'No se pudo crear la orden en PayPal.');
                   }
 
                   return data.id;
@@ -545,13 +547,18 @@ export const ProfilePage: React.FC = () => {
                     });
 
                     if (error || !result?.success) {
+                      console.error('Error capturando orden PayPal en Edge Function:', { error, result });
                       throw new Error(error?.message || result?.error || 'No se pudo confirmar el pago.');
                     }
+
+                    const nextExpiresAt =
+                      result.subscriptionExpiresAt ||
+                      new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
                     setProfile((prev) => ({
                       ...prev,
                       selectedPackage: targetPlan,
-                      subscriptionExpiresAt: result.subscriptionExpiresAt,
+                      subscriptionExpiresAt: nextExpiresAt,
                     }));
 
                     setMessage({
@@ -559,10 +566,12 @@ export const ProfilePage: React.FC = () => {
                       text: '¡Pago exitoso! Tu plan ha sido activado/extendido por 30 días.',
                     });
                   } catch (err: any) {
-                    console.error('Error al capturar pago desde backend:', err);
+                    console.error('Error al procesar/capturar pago PayPal:', err);
                     setMessage({
                       type: 'error',
-                      text: err?.message || 'El pago no pudo completarse.',
+                      text:
+                        err?.message ||
+                        'El pago no pudo completarse o hubo un error al actualizar tu cuenta.',
                     });
                   } finally {
                     setUpdatingPlan(false);
@@ -575,7 +584,7 @@ export const ProfilePage: React.FC = () => {
                     text: 'El pago con PayPal fue cancelado antes de completarse.',
                   });
                 }}
-                onError={(err) => {
+                onError={(err: any) => {
                   setUpdatingPlan(false);
                   console.error('PayPal Button Error:', err);
                   setMessage({
@@ -584,6 +593,7 @@ export const ProfilePage: React.FC = () => {
                   });
                 }}
               />
+            </div>
           )}
 
           {profile.selectedPackage !== 'starter' && (
