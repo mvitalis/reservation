@@ -70,6 +70,28 @@ function createInitialSlug(businessName?: string | null): string {
   return `${basePart}-${randomPart}`;
 }
 
+async function extractEdgeFunctionError(error: any, fallbackData: any): Promise<string> {
+  if (fallbackData?.error) {
+    return typeof fallbackData.details === 'string'
+      ? `${fallbackData.error}: ${fallbackData.details}`
+      : fallbackData.error;
+  }
+
+  if (error && 'context' in error && error.context && typeof error.context.json === 'function') {
+    try {
+      const errBody = await error.context.json();
+      if (errBody?.error) {
+        const extra = errBody?.details ? ` (${JSON.stringify(errBody.details)})` : '';
+        return `${errBody.error}${extra}`;
+      }
+    } catch {
+      // Ignorar si la respuesta no es JSON
+    }
+  }
+
+  return error?.message || 'Error inesperado al comunicarse con el servidor.';
+}
+
 export const ProfilePage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [savingProfile, setSavingProfile] = useState<boolean>(false);
@@ -198,6 +220,7 @@ export const ProfilePage: React.FC = () => {
     const orderId = params.get('order_id');
     const total = params.get('total');
     const hash = params.get('hash');
+    const returnedPlan = params.get('plan') as PackageTier | null;
 
     if (!status && !transactionId && !orderId) return;
 
@@ -216,7 +239,20 @@ export const ProfilePage: React.FC = () => {
     setMessage(null);
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('Sesión expirada. Inicia sesión nuevamente para confirmar el pago.');
+      }
+
+      const planToActivate =
+        returnedPlan && (returnedPlan === 'pro' || returnedPlan === 'business')
+          ? returnedPlan
+          : targetPlan;
+
       const { data: result, error } = await supabase.functions.invoke('wipay-order', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: {
           action: 'verify',
           status,
@@ -224,15 +260,17 @@ export const ProfilePage: React.FC = () => {
           orderId,
           total,
           hash,
+          planId: planToActivate,
           businessId: profile.businessId,
         },
       });
 
       if (error || !result?.success) {
-        throw new Error(error?.message || result?.error || 'No se pudo verificar el pago de WiPay.');
+        const detailMsg = await extractEdgeFunctionError(error, result);
+        throw new Error(detailMsg);
       }
 
-      const activatedTier = (result.packageTier || targetPlan) as PackageTier;
+      const activatedTier = (result.packageTier || planToActivate) as PackageTier;
       const nextExpiresAt =
         result.subscriptionExpiresAt ||
         new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
@@ -272,9 +310,17 @@ export const ProfilePage: React.FC = () => {
     setMessage(null);
 
     try {
-      const returnUrl = `${window.location.origin}/profile`;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('No hay una sesión activa. Por favor vuelve a iniciar sesión.');
+      }
+
+      const returnUrl = `${window.location.origin}${window.location.pathname}?plan=${targetPlan}`;
 
       const { data, error } = await supabase.functions.invoke('wipay-order', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: {
           action: 'create',
           planId: targetPlan,
@@ -284,7 +330,8 @@ export const ProfilePage: React.FC = () => {
       });
 
       if (error || !data?.url) {
-        throw new Error(error?.message || data?.error || 'No se pudo generar el enlace de pago de WiPay.');
+        const detailMsg = await extractEdgeFunctionError(error, data);
+        throw new Error(detailMsg);
       }
 
       window.location.href = data.url;
