@@ -7,10 +7,7 @@ module.exports = defineConfig({
   retries: 1,
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
-    // Si process.env.BASE_URL no existe, usará http://localhost:3000 por defecto
-    baseURL: 'https://reservation-di4k18gow-mark-fada.vercel.app',
-    TEST_EMAIL=markvitalis@hotmail.com,
-    TEST_PASSWORD=123456,
+    baseURL: process.env.BASE_URL || 'https://reservation-iota-five.vercel.app',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },

@@ -282,7 +282,13 @@ function AdminLayout({ children }: { children: React.ReactNode }) {
 
 function App() {
   return (
-    <PayPalScriptProvider options={{ 'clientId': PAYPAL_CLIENT_ID, vault: true, intent: 'subscription' }}>
+    <PayPalScriptProvider
+      options={{
+        clientId: PAYPAL_CLIENT_ID,
+        currency: 'USD',
+        intent: 'capture',
+      }}
+    >
       <BrowserRouter>
         <Routes>
           {/* AUTHENTICATION & ONBOARDING */}
@@ -348,4 +354,5 @@ function App() {
     </PayPalScriptProvider>
   );
 }
+
 export default App;

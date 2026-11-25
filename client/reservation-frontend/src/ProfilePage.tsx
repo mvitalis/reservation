@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
+import { PayPalButtons } from '@paypal/react-paypal-js';
 import { supabase } from './supabaseClient';
 import { PLANS, type PlanId as PackageTier } from './plans';
 import {
@@ -398,495 +398,503 @@ export const ProfilePage: React.FC = () => {
   }
 
   const selectedPkgConfig = PLANS[targetPlan] || PLANS['pro'];
+  const parsedAmount = parseFloat(selectedPkgConfig.price.replace(/[^0-9.]/g, ''));
+  const numericPrice =
+    Number.isFinite(parsedAmount) && parsedAmount > 0 ? parsedAmount.toFixed(2) : '19.00';
 
   return (
-    <PayPalScriptProvider
-      options={{
-        clientId: 'BAA1egOcwl_6giFBDt96jkkPIHeork6b_VIxvdibRlLEiuLwwaWz5Q4C-qmadXpgrYLhnHX3_hsdp8EN6w',
-        currency: 'USD',
-        intent: 'capture',
-      }}
-    >
-      <div className="min-h-screen bg-gray-50 dark:bg-slate-950 py-10 px-4 sm:px-6 text-slate-900 dark:text-slate-100 font-sans">
-        <div className="max-w-3xl mx-auto space-y-8">
-          {/* Page Header */}
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/60 px-2 py-0.5 rounded border border-purple-200 dark:border-purple-800">
-                  Account Management
-                </span>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Account & Settings</h1>
-              </div>
-              <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">Manage your business information, page customization, operating hours, and security.</p>
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 py-10 px-4 sm:px-6 text-slate-900 dark:text-slate-100 font-sans">
+      <div className="max-w-3xl mx-auto space-y-8">
+        {/* Page Header */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/60 px-2 py-0.5 rounded border border-purple-200 dark:border-purple-800">
+                Account Management
+              </span>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Account & Settings</h1>
             </div>
+            <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">Manage your business information, page customization, operating hours, and security.</p>
+          </div>
+        </div>
+
+        {/* Global Feedback Banner */}
+        {message && (
+          <div
+            className={`p-4 rounded-xl flex items-center gap-3 text-sm font-medium ${
+              message.type === 'success'
+                ? 'bg-green-50 dark:bg-green-950/60 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300'
+                : 'bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300'
+            }`}
+          >
+            {message.type === 'success' ? (
+              <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 shrink-0" />
+            ) : (
+              <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0" />
+            )}
+            <span>{message.text}</span>
+          </div>
+        )}
+
+        {/* SECTION 1: Read-Only Account Identity */}
+        <div className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-xl shadow-md border border-gray-100 dark:border-slate-700 space-y-4">
+          <div className="flex items-center gap-2 pb-3 border-b border-gray-100 dark:border-slate-700">
+            <ShieldAlert className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+            <h2 className="text-lg font-bold text-gray-800 dark:text-slate-100">Login Identity</h2>
           </div>
 
-          {/* Global Feedback Banner */}
-          {message && (
-            <div
-              className={`p-4 rounded-xl flex items-center gap-3 text-sm font-medium ${
-                message.type === 'success'
-                  ? 'bg-green-50 dark:bg-green-950/60 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300'
-                  : 'bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300'
-              }`}
-            >
-              {message.type === 'success' ? (
-                <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 shrink-0" />
-              ) : (
-                <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0" />
-              )}
-              <span>{message.text}</span>
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide mb-1">
+              Account Email / Username
+            </label>
+            <div className="relative">
+              <input
+                type="email"
+                value={profile.usernameEmail}
+                disabled
+                className="w-full p-3 pl-10 border border-gray-200 dark:border-slate-700 bg-gray-100 dark:bg-slate-900 text-gray-500 dark:text-slate-400 rounded-lg cursor-not-allowed select-none font-medium"
+              />
+              <Lock className="w-4 h-4 text-gray-400 dark:text-slate-500 absolute left-3 top-3.5" />
+            </div>
+          </div>
+        </div>
+
+        {/* SECTION 2: Subscription & Plan Management with PayPal */}
+        <div className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-xl shadow-md border border-gray-100 dark:border-slate-700 space-y-6">
+          <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-slate-700">
+            <div className="flex items-center gap-2">
+              <CreditCard className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+              <h2 className="text-lg font-bold text-gray-800 dark:text-slate-100">Subscription Plan (30 Days)</h2>
+            </div>
+            <span className="text-xs font-bold uppercase tracking-wider bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300 px-3 py-1 rounded-full border border-purple-200 dark:border-purple-800">
+              Active: {profile.selectedPackage.toUpperCase()}
+            </span>
+          </div>
+
+          {profile.subscriptionExpiresAt && (
+            <div className="bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 p-3 rounded-lg text-xs text-purple-900 dark:text-purple-200 flex items-center justify-between">
+              <span>Tu plan actual vence el: <strong>{new Date(profile.subscriptionExpiresAt).toLocaleDateString()}</strong></span>
             </div>
           )}
 
-          {/* SECTION 1: Read-Only Account Identity */}
-          <div className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-xl shadow-md border border-gray-100 dark:border-slate-700 space-y-4">
-            <div className="flex items-center gap-2 pb-3 border-b border-gray-100 dark:border-slate-700">
-              <ShieldAlert className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-              <h2 className="text-lg font-bold text-gray-800 dark:text-slate-100">Login Identity</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {Object.values(PLANS).map((pkg) => {
+              const isSelected = targetPlan === pkg.id;
+              const isCurrentActive = profile.selectedPackage === pkg.id;
+
+              return (
+                <div
+                  key={pkg.id}
+                  onClick={() => pkg.id !== 'starter' && setTargetPlan(pkg.id as PackageTier)}
+                  className={`p-4 rounded-xl border-2 transition-all relative ${
+                    isSelected
+                      ? 'border-purple-600 bg-purple-50/40 dark:bg-purple-950/40 shadow-sm'
+                      : 'border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900'
+                  } ${pkg.id !== 'starter' ? 'cursor-pointer' : ''}`}
+                >
+                  <div className="flex justify-between items-center mb-1">
+                    <h3 className="font-bold text-gray-900 dark:text-slate-100">{pkg.name}</h3>
+                    <span className="text-xs font-semibold text-purple-600 dark:text-purple-400">{pkg.price}</span>
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-slate-400 mb-3">{pkg.description}</p>
+
+                  {isCurrentActive && (
+                    <span className="inline-flex items-center text-xs font-semibold text-green-700 dark:text-green-300">
+                      <CheckCircle2 className="w-3.5 h-3.5 mr-1 text-green-600" /> Plan Actual
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {targetPlan !== 'starter' && (
+            <div className="bg-gray-50 dark:bg-slate-900 p-4 rounded-xl border border-gray-200 dark:border-slate-700 space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase">
+                  Pagar / Renovar Plan {selectedPkgConfig.name} (${numericPrice} USD por 30 días)
+                </span>
+              </div>
+
+              <PayPalButtons
+                key={`paypal-payment-${targetPlan}-${numericPrice}`}
+                forceReRender={[targetPlan, numericPrice]}
+                style={{ layout: 'vertical', color: 'gold', shape: 'rect' }}
+                createOrder={(_data, actions) => {
+                  if (!actions.order) {
+                    return Promise.reject(new Error('PayPal order actions not available'));
+                  }
+
+                  return actions.order.create({
+                    intent: 'CAPTURE',
+                    purchase_units: [
+                      {
+                        amount: {
+                          value: numericPrice,
+                          currency_code: 'USD',
+                        },
+                        description: `Suscripción 30 días - Plan ${selectedPkgConfig.name}`,
+                      },
+                    ],
+                  });
+                }}
+                onApprove={async (_data, actions) => {
+                  if (!actions.order) return;
+
+                  try {
+                    const details = await actions.order.capture();
+
+                    const expiresAt = new Date();
+                    expiresAt.setDate(expiresAt.getDate() + 30);
+
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (!user) throw new Error('No active user session.');
+
+                    const matchColumn = profile.businessId ? 'id' : 'owner_id';
+                    const matchValue = profile.businessId || user.id;
+
+                    const { error } = await supabase
+                      .from('businesses')
+                      .update({
+                        package_tier: targetPlan,
+                        subscription_expires_at: expiresAt.toISOString(),
+                        renewal_reminder_sent: false,
+                        paypal_order_id: details.id,
+                      })
+                      .eq(matchColumn, matchValue);
+
+                    if (error) throw error;
+
+                    setProfile((prev) => ({
+                      ...prev,
+                      selectedPackage: targetPlan,
+                      subscriptionExpiresAt: expiresAt.toISOString(),
+                    }));
+
+                    setMessage({
+                      type: 'success',
+                      text: '¡Pago exitoso! Tu plan ha sido activado/extendido por 30 días.',
+                    });
+                  } catch (err: any) {
+                    console.error('Error al procesar pago:', err);
+                    setMessage({
+                      type: 'error',
+                      text: err.message || 'El pago no pudo completarse o hubo un error al actualizar tu cuenta.',
+                    });
+                  }
+                }}
+                onCancel={() => {
+                  setMessage({
+                    type: 'error',
+                    text: 'El pago con PayPal fue cancelado antes de completarse.',
+                  });
+                }}
+                onError={(err) => {
+                  console.error('PayPal Error:', err);
+                  setMessage({
+                    type: 'error',
+                    text: 'El pago con PayPal no pudo completarse.',
+                  });
+                }}
+              />
+            </div>
+          )}
+
+          {profile.selectedPackage !== 'starter' && (
+            <div className="pt-2 border-t border-gray-100 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <p className="text-xs font-medium text-gray-700 dark:text-slate-300">¿Deseas volver al plan gratuito?</p>
+                <p className="text-xs text-gray-500 dark:text-slate-400">
+                  Esto cambiará tu cuenta al plan Starter de inmediato.
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={updatingPlan}
+                onClick={handleDowngradeToStarter}
+                className="text-xs px-4 py-2 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/60 font-semibold rounded-lg transition-colors flex items-center justify-center gap-1 shrink-0 cursor-pointer"
+              >
+                <XCircle className="w-3.5 h-3.5" />
+                <span>Downgrade to Starter</span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* SECTION 3: Business Details, Branding & Operating Hours */}
+        <form onSubmit={handleProfileSave} className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-xl shadow-md border border-gray-100 dark:border-slate-700 space-y-6">
+          <div className="flex items-center gap-2 pb-3 border-b border-gray-100 dark:border-slate-700">
+            <Building className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+            <h2 className="text-lg font-bold text-gray-800 dark:text-slate-100">Business Details & Branding</h2>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wide mb-1">
+                Business Name
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  required
+                  value={profile.businessName}
+                  onChange={(e) => setProfile({ ...profile, businessName: e.target.value })}
+                  className="w-full p-3 pl-10 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white dark:bg-slate-900 text-gray-800 dark:text-slate-100 font-medium placeholder-slate-400"
+                  placeholder="e.g. Kimba Imperial Barbershop"
+                />
+                <Building className="w-4 h-4 text-gray-400 dark:text-slate-500 absolute left-3 top-3.5" />
+              </div>
+            </div>
+
+            {profile.slug && (
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wide mb-1">
+                  Booking Slug (Permanent)
+                </label>
+                <input
+                  type="text"
+                  value={profile.slug}
+                  disabled
+                  className="w-full p-3 border border-gray-200 dark:border-slate-700 bg-gray-100 dark:bg-slate-900 text-gray-500 dark:text-slate-400 rounded-lg cursor-not-allowed font-mono text-sm"
+                />
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wide mb-1">
+                Public Phone Number
+              </label>
+              <div className="relative">
+                <input
+                  type="tel"
+                  value={profile.phone}
+                  onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                  className="w-full p-3 pl-10 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white dark:bg-slate-900 text-gray-800 dark:text-slate-100 font-medium placeholder-slate-400"
+                  placeholder="(868) 555-0199"
+                />
+                <Phone className="w-4 h-4 text-gray-400 dark:text-slate-500 absolute left-3 top-3.5" />
+              </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide mb-1">
-                Account Email / Username
+              <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wide mb-1">
+                Notification Email
               </label>
               <div className="relative">
                 <input
                   type="email"
-                  value={profile.usernameEmail}
-                  disabled
-                  className="w-full p-3 pl-10 border border-gray-200 dark:border-slate-700 bg-gray-100 dark:bg-slate-900 text-gray-500 dark:text-slate-400 rounded-lg cursor-not-allowed select-none font-medium"
+                  required
+                  value={profile.notificationEmail}
+                  onChange={(e) => setProfile({ ...profile, notificationEmail: e.target.value })}
+                  className="w-full p-3 pl-10 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white dark:bg-slate-900 text-gray-800 dark:text-slate-100 font-medium placeholder-slate-400"
+                  placeholder="alerts@yourdomain.com"
                 />
-                <Lock className="w-4 h-4 text-gray-400 dark:text-slate-500 absolute left-3 top-3.5" />
+                <Bell className="w-4 h-4 text-gray-400 dark:text-slate-500 absolute left-3 top-3.5" />
               </div>
             </div>
-          </div>
 
-          {/* SECTION 2: Subscription & Plan Management with PayPal */}
-          <div className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-xl shadow-md border border-gray-100 dark:border-slate-700 space-y-6">
-            <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-slate-700">
-              <div className="flex items-center gap-2">
-                <CreditCard className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                <h2 className="text-lg font-bold text-gray-800 dark:text-slate-100">Subscription Plan (30 Days)</h2>
+            {/* BRANDING */}
+            <div className="pt-4 border-t border-gray-100 dark:border-slate-700 space-y-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Palette className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wide">
+                  Public Page Custom Branding & Theme
+                </label>
               </div>
-              <span className="text-xs font-bold uppercase tracking-wider bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300 px-3 py-1 rounded-full border border-purple-200 dark:border-purple-800">
-                Active: {profile.selectedPackage.toUpperCase()}
-              </span>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
+                  Public Booking Page Theme Mode
+                </label>
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { id: 'light', label: '☀️ Light', desc: 'Light background' },
+                    { id: 'dark', label: '🌙 Dark', desc: 'Dark background' },
+                    { id: 'system', label: '💻 System', desc: 'Device preference' },
+                  ].map((themeOpt) => (
+                    <button
+                      key={themeOpt.id}
+                      type="button"
+                      onClick={() => setProfile({ ...profile, publicTheme: themeOpt.id as any })}
+                      className={`p-3 rounded-lg border text-left transition-all cursor-pointer ${
+                        profile.publicTheme === themeOpt.id
+                          ? 'border-purple-600 bg-purple-50 dark:bg-purple-950/60 text-purple-900 dark:text-purple-200 font-semibold shadow-sm'
+                          : 'border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      <div className="text-xs font-bold">{themeOpt.label}</div>
+                      <div className="text-[10px] text-gray-500 dark:text-slate-400 mt-0.5">{themeOpt.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
+                  Logo Image URL
+                </label>
+                <div className="relative">
+                  <input
+                    type="url"
+                    value={profile.logoUrl}
+                    onChange={(e) => setProfile({ ...profile, logoUrl: e.target.value })}
+                    className="w-full p-3 pl-10 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white dark:bg-slate-900 text-gray-800 dark:text-slate-100 font-medium placeholder-slate-400"
+                    placeholder="https://example.com/logo.png"
+                  />
+                  <Sparkles className="w-4 h-4 text-gray-400 dark:text-slate-500 absolute left-3 top-3.5" />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
+                  Header Cover Image URL
+                </label>
+                <div className="relative">
+                  <input
+                    type="url"
+                    value={profile.headerImageUrl}
+                    onChange={(e) => setProfile({ ...profile, headerImageUrl: e.target.value })}
+                    className="w-full p-3 pl-10 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white dark:bg-slate-900 text-gray-800 dark:text-slate-100 font-medium placeholder-slate-400"
+                    placeholder="https://example.com/banner.jpg"
+                  />
+                  <Image className="w-4 h-4 text-gray-400 dark:text-slate-500 absolute left-3 top-3.5" />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
+                  Primary Brand Accent Color
+                </label>
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="color"
+                    value={profile.primaryColor}
+                    onChange={(e) => setProfile({ ...profile, primaryColor: e.target.value })}
+                    className="h-10 w-20 cursor-pointer rounded-lg border border-gray-300 dark:border-slate-600 p-1 bg-white dark:bg-slate-900"
+                  />
+                  <span className="text-gray-600 dark:text-slate-400 font-mono text-sm">{profile.primaryColor}</span>
+                </div>
+              </div>
             </div>
 
-            {profile.subscriptionExpiresAt && (
-              <div className="bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 p-3 rounded-lg text-xs text-purple-900 dark:text-purple-200 flex items-center justify-between">
-                <span>Tu plan actual vence el: <strong>{new Date(profile.subscriptionExpiresAt).toLocaleDateString()}</strong></span>
+            {/* Operating Hours */}
+            <div className="pt-4 border-t border-gray-100 dark:border-slate-700">
+              <div className="flex items-center gap-2 mb-2">
+                <Clock className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wide">
+                  Business Operating Hours
+                </label>
               </div>
-            )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {Object.values(PLANS).map((pkg) => {
-                const isSelected = targetPlan === pkg.id;
-                const isCurrentActive = profile.selectedPackage === pkg.id;
+              <div className="space-y-3 bg-gray-50 dark:bg-slate-900 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
+                {DAYS.map((day) => {
+                  const dayConfig = profile.businessHours[day] || { open: '09:00', close: '17:00', closed: false };
 
-                return (
-                  <div
-                    key={pkg.id}
-                    onClick={() => pkg.id !== 'starter' && setTargetPlan(pkg.id as PackageTier)}
-                    className={`p-4 rounded-xl border-2 transition-all relative ${
-                      isSelected
-                        ? 'border-purple-600 bg-purple-50/40 dark:bg-purple-950/40 shadow-sm'
-                        : 'border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900'
-                    } ${pkg.id !== 'starter' ? 'cursor-pointer' : ''}`}
-                  >
-                    <div className="flex justify-between items-center mb-1">
-                      <h3 className="font-bold text-gray-900 dark:text-slate-100">{pkg.name}</h3>
-                      <span className="text-xs font-semibold text-purple-600 dark:text-purple-400">{pkg.price}</span>
-                    </div>
-                    <p className="text-xs text-gray-500 dark:text-slate-400 mb-3">{pkg.description}</p>
-
-                    {isCurrentActive && (
-                      <span className="inline-flex items-center text-xs font-semibold text-green-700 dark:text-green-300">
-                        <CheckCircle2 className="w-3.5 h-3.5 mr-1 text-green-600" /> Plan Actual
+                  return (
+                    <div
+                      key={day}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between p-2.5 rounded-lg bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 gap-2 sm:gap-0"
+                    >
+                      <span className="capitalize font-semibold text-sm text-gray-700 dark:text-slate-300 w-28">
+                        {day}
                       </span>
-                    )}
-                  </div>
-                );
-              })}
+
+                      <div className="flex items-center space-x-4">
+                        <label className="flex items-center space-x-2 text-xs font-medium text-gray-600 dark:text-slate-400 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={dayConfig.closed}
+                            onChange={() => handleToggleClosed(day)}
+                            className="rounded text-purple-600 focus:ring-purple-500 w-4 h-4"
+                          />
+                          <span>Closed</span>
+                        </label>
+
+                        {!dayConfig.closed && (
+                          <div className="flex items-center space-x-2 text-xs">
+                            <input
+                              type="time"
+                              value={dayConfig.open}
+                              onChange={(e) => handleTimeChange(day, 'open', e.target.value)}
+                              className="p-1.5 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-800 dark:text-slate-100 font-medium focus:ring-2 focus:ring-purple-500 bg-white dark:bg-slate-900"
+                            />
+                            <span className="text-gray-400 font-medium">to</span>
+                            <input
+                              type="time"
+                              value={dayConfig.close}
+                              onChange={(e) => handleTimeChange(day, 'close', e.target.value)}
+                              className="p-1.5 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-800 dark:text-slate-100 font-medium focus:ring-2 focus:ring-purple-500 bg-white dark:bg-slate-900"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-
-            {targetPlan !== 'starter' && (
-              <div className="bg-gray-50 dark:bg-slate-900 p-4 rounded-xl border border-gray-200 dark:border-slate-700 space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase">
-                    Pagar / Renovar Plan {selectedPkgConfig.name} ({selectedPkgConfig.price} por 30 días)
-                  </span>
-                </div>
-
-                <PayPalButtons
-                  key={`paypal-payment-${targetPlan}`}
-                  forceReRender={[targetPlan, selectedPkgConfig.price]}
-                  style={{ layout: 'vertical', color: 'gold', shape: 'rect' }}
-                  createOrder={(_data, actions) => {
-                    const numericPrice = selectedPkgConfig.price.replace(/[^0-9.]/g, '');
-
-                    if (!actions.order) {
-                      return Promise.reject(new Error('PayPal order actions not available'));
-                    }
-
-                    return actions.order.create({
-                      intent: 'CAPTURE',
-                      purchase_units: [
-                        {
-                          amount: {
-                            value: numericPrice,
-                            currency_code: 'USD',
-                          },
-                          description: `Suscripción 30 días - Plan ${selectedPkgConfig.name}`,
-                        },
-                      ],
-                    });
-                  }}
-                  onApprove={async (_data, actions) => {
-                    if (!actions.order) return;
-
-                    try {
-                      const details = await actions.order.capture();
-
-                      const expiresAt = new Date();
-                      expiresAt.setDate(expiresAt.getDate() + 30);
-
-                      const { data: { user } } = await supabase.auth.getUser();
-                      if (!user) throw new Error('No active user session.');
-
-                      const matchColumn = profile.businessId ? 'id' : 'owner_id';
-                      const matchValue = profile.businessId || user.id;
-
-                      const { error } = await supabase
-                        .from('businesses')
-                        .update({
-                          package_tier: targetPlan,
-                          subscription_expires_at: expiresAt.toISOString(),
-                          renewal_reminder_sent: false,
-                          paypal_order_id: details.id,
-                        })
-                        .eq(matchColumn, matchValue);
-
-                      if (error) throw error;
-
-                      setProfile((prev) => ({
-                        ...prev,
-                        selectedPackage: targetPlan,
-                        subscriptionExpiresAt: expiresAt.toISOString(),
-                      }));
-
-                      alert('¡Pago exitoso! Tu plan ha sido activado/extendido por 30 días.');
-                    } catch (err: any) {
-                      console.error('Error al procesar pago:', err);
-                      alert('El pago se realizó, pero hubo un error al actualizar tu cuenta.');
-                    }
-                  }}
-                  onError={(err) => {
-                    console.error('PayPal Error:', err);
-                    alert('El pago con PayPal no pudo completarse.');
-                  }}
-                />
-              </div>
-            )}
-
-            {profile.selectedPackage !== 'starter' && (
-              <div className="pt-2 border-t border-gray-100 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div>
-                  <p className="text-xs font-medium text-gray-700 dark:text-slate-300">¿Deseas volver al plan gratuito?</p>
-                  <p className="text-xs text-gray-500 dark:text-slate-400">
-                    Esto cambiará tu cuenta al plan Starter de inmediato.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  disabled={updatingPlan}
-                  onClick={handleDowngradeToStarter}
-                  className="text-xs px-4 py-2 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/60 font-semibold rounded-lg transition-colors flex items-center justify-center gap-1 shrink-0 cursor-pointer"
-                >
-                  <XCircle className="w-3.5 h-3.5" />
-                  <span>Downgrade to Starter</span>
-                </button>
-              </div>
-            )}
           </div>
 
-          {/* SECTION 3: Business Details, Branding & Operating Hours */}
-          <form onSubmit={handleProfileSave} className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-xl shadow-md border border-gray-100 dark:border-slate-700 space-y-6">
-            <div className="flex items-center gap-2 pb-3 border-b border-gray-100 dark:border-slate-700">
-              <Building className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-              <h2 className="text-lg font-bold text-gray-800 dark:text-slate-100">Business Details & Branding</h2>
+          <button
+            type="submit"
+            disabled={savingProfile}
+            className="w-full sm:w-auto px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors shadow-md flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+          >
+            <Save className="w-4 h-4" />
+            <span>{savingProfile ? 'Saving Changes...' : 'Save Profile Changes'}</span>
+          </button>
+        </form>
+
+        {/* SECTION 4: Change Password */}
+        <form onSubmit={handlePasswordUpdate} className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-xl shadow-md border border-gray-100 dark:border-slate-700 space-y-6">
+          <div className="flex items-center gap-2 pb-3 border-b border-gray-100 dark:border-slate-700">
+            <KeyRound className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+            <h2 className="text-lg font-bold text-gray-800 dark:text-slate-100">Security & Password</h2>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wide mb-1">
+                New Password
+              </label>
+              <input
+                type="password"
+                required
+                minLength={6}
+                value={passwords.newPassword}
+                onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })}
+                className="w-full p-3 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white dark:bg-slate-900 text-gray-800 dark:text-slate-100 font-medium placeholder-slate-400"
+                placeholder="••••••••"
+              />
             </div>
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wide mb-1">
-                  Business Name
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    required
-                    value={profile.businessName}
-                    onChange={(e) => setProfile({ ...profile, businessName: e.target.value })}
-                    className="w-full p-3 pl-10 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white dark:bg-slate-900 text-gray-800 dark:text-slate-100 font-medium placeholder-slate-400"
-                    placeholder="e.g. Kimba Imperial Barbershop"
-                  />
-                  <Building className="w-4 h-4 text-gray-400 dark:text-slate-500 absolute left-3 top-3.5" />
-                </div>
-              </div>
-
-              {profile.slug && (
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wide mb-1">
-                    Booking Slug (Permanent)
-                  </label>
-                  <input
-                    type="text"
-                    value={profile.slug}
-                    disabled
-                    className="w-full p-3 border border-gray-200 dark:border-slate-700 bg-gray-100 dark:bg-slate-900 text-gray-500 dark:text-slate-400 rounded-lg cursor-not-allowed font-mono text-sm"
-                  />
-                </div>
-              )}
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wide mb-1">
-                  Public Phone Number
-                </label>
-                <div className="relative">
-                  <input
-                    type="tel"
-                    value={profile.phone}
-                    onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                    className="w-full p-3 pl-10 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white dark:bg-slate-900 text-gray-800 dark:text-slate-100 font-medium placeholder-slate-400"
-                    placeholder="(868) 555-0199"
-                  />
-                  <Phone className="w-4 h-4 text-gray-400 dark:text-slate-500 absolute left-3 top-3.5" />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wide mb-1">
-                  Notification Email
-                </label>
-                <div className="relative">
-                  <input
-                    type="email"
-                    required
-                    value={profile.notificationEmail}
-                    onChange={(e) => setProfile({ ...profile, notificationEmail: e.target.value })}
-                    className="w-full p-3 pl-10 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white dark:bg-slate-900 text-gray-800 dark:text-slate-100 font-medium placeholder-slate-400"
-                    placeholder="alerts@yourdomain.com"
-                  />
-                  <Bell className="w-4 h-4 text-gray-400 dark:text-slate-500 absolute left-3 top-3.5" />
-                </div>
-              </div>
-
-              {/* BRANDING */}
-              <div className="pt-4 border-t border-gray-100 dark:border-slate-700 space-y-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <Palette className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                  <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wide">
-                    Public Page Custom Branding & Theme
-                  </label>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
-                    Public Booking Page Theme Mode
-                  </label>
-                  <div className="grid grid-cols-3 gap-3">
-                    {[
-                      { id: 'light', label: '☀️ Light', desc: 'Light background' },
-                      { id: 'dark', label: '🌙 Dark', desc: 'Dark background' },
-                      { id: 'system', label: '💻 System', desc: 'Device preference' },
-                    ].map((themeOpt) => (
-                      <button
-                        key={themeOpt.id}
-                        type="button"
-                        onClick={() => setProfile({ ...profile, publicTheme: themeOpt.id as any })}
-                        className={`p-3 rounded-lg border text-left transition-all cursor-pointer ${
-                          profile.publicTheme === themeOpt.id
-                            ? 'border-purple-600 bg-purple-50 dark:bg-purple-950/60 text-purple-900 dark:text-purple-200 font-semibold shadow-sm'
-                            : 'border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800'
-                        }`}
-                      >
-                        <div className="text-xs font-bold">{themeOpt.label}</div>
-                        <div className="text-[10px] text-gray-500 dark:text-slate-400 mt-0.5">{themeOpt.desc}</div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
-                    Logo Image URL
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="url"
-                      value={profile.logoUrl}
-                      onChange={(e) => setProfile({ ...profile, logoUrl: e.target.value })}
-                      className="w-full p-3 pl-10 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white dark:bg-slate-900 text-gray-800 dark:text-slate-100 font-medium placeholder-slate-400"
-                      placeholder="https://example.com/logo.png"
-                    />
-                    <Sparkles className="w-4 h-4 text-gray-400 dark:text-slate-500 absolute left-3 top-3.5" />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
-                    Header Cover Image URL
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="url"
-                      value={profile.headerImageUrl}
-                      onChange={(e) => setProfile({ ...profile, headerImageUrl: e.target.value })}
-                      className="w-full p-3 pl-10 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white dark:bg-slate-900 text-gray-800 dark:text-slate-100 font-medium placeholder-slate-400"
-                      placeholder="https://example.com/banner.jpg"
-                    />
-                    <Image className="w-4 h-4 text-gray-400 dark:text-slate-500 absolute left-3 top-3.5" />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
-                    Primary Brand Accent Color
-                  </label>
-                  <div className="flex items-center space-x-3">
-                    <input
-                      type="color"
-                      value={profile.primaryColor}
-                      onChange={(e) => setProfile({ ...profile, primaryColor: e.target.value })}
-                      className="h-10 w-20 cursor-pointer rounded-lg border border-gray-300 dark:border-slate-600 p-1 bg-white dark:bg-slate-900"
-                    />
-                    <span className="text-gray-600 dark:text-slate-400 font-mono text-sm">{profile.primaryColor}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Operating Hours */}
-              <div className="pt-4 border-t border-gray-100 dark:border-slate-700">
-                <div className="flex items-center gap-2 mb-2">
-                  <Clock className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                  <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wide">
-                    Business Operating Hours
-                  </label>
-                </div>
-
-                <div className="space-y-3 bg-gray-50 dark:bg-slate-900 p-4 rounded-xl border border-gray-200 dark:border-slate-700">
-                  {DAYS.map((day) => {
-                    const dayConfig = profile.businessHours[day] || { open: '09:00', close: '17:00', closed: false };
-
-                    return (
-                      <div
-                        key={day}
-                        className="flex flex-col sm:flex-row sm:items-center justify-between p-2.5 rounded-lg bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 gap-2 sm:gap-0"
-                      >
-                        <span className="capitalize font-semibold text-sm text-gray-700 dark:text-slate-300 w-28">
-                          {day}
-                        </span>
-
-                        <div className="flex items-center space-x-4">
-                          <label className="flex items-center space-x-2 text-xs font-medium text-gray-600 dark:text-slate-400 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={dayConfig.closed}
-                              onChange={() => handleToggleClosed(day)}
-                              className="rounded text-purple-600 focus:ring-purple-500 w-4 h-4"
-                            />
-                            <span>Closed</span>
-                          </label>
-
-                          {!dayConfig.closed && (
-                            <div className="flex items-center space-x-2 text-xs">
-                              <input
-                                type="time"
-                                value={dayConfig.open}
-                                onChange={(e) => handleTimeChange(day, 'open', e.target.value)}
-                                className="p-1.5 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-800 dark:text-slate-100 font-medium focus:ring-2 focus:ring-purple-500 bg-white dark:bg-slate-900"
-                              />
-                              <span className="text-gray-400 font-medium">to</span>
-                              <input
-                                type="time"
-                                value={dayConfig.close}
-                                onChange={(e) => handleTimeChange(day, 'close', e.target.value)}
-                                className="p-1.5 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-800 dark:text-slate-100 font-medium focus:ring-2 focus:ring-purple-500 bg-white dark:bg-slate-900"
-                              />
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wide mb-1">
+                Confirm New Password
+              </label>
+              <input
+                type="password"
+                required
+                minLength={6}
+                value={passwords.confirmPassword}
+                onChange={(e) => setPasswords({ ...passwords, confirmPassword: e.target.value })}
+                className="w-full p-3 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white dark:bg-slate-900 text-gray-800 dark:text-slate-100 font-medium placeholder-slate-400"
+                placeholder="••••••••"
+              />
             </div>
+          </div>
 
-            <button
-              type="submit"
-              disabled={savingProfile}
-              className="w-full sm:w-auto px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors shadow-md flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
-            >
-              <Save className="w-4 h-4" />
-              <span>{savingProfile ? 'Saving Changes...' : 'Save Profile Changes'}</span>
-            </button>
-          </form>
-
-          {/* SECTION 4: Change Password */}
-          <form onSubmit={handlePasswordUpdate} className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-xl shadow-md border border-gray-100 dark:border-slate-700 space-y-6">
-            <div className="flex items-center gap-2 pb-3 border-b border-gray-100 dark:border-slate-700">
-              <KeyRound className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-              <h2 className="text-lg font-bold text-gray-800 dark:text-slate-100">Security & Password</h2>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wide mb-1">
-                  New Password
-                </label>
-                <input
-                  type="password"
-                  required
-                  minLength={6}
-                  value={passwords.newPassword}
-                  onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })}
-                  className="w-full p-3 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white dark:bg-slate-900 text-gray-800 dark:text-slate-100 font-medium placeholder-slate-400"
-                  placeholder="••••••••"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wide mb-1">
-                  Confirm New Password
-                </label>
-                <input
-                  type="password"
-                  required
-                  minLength={6}
-                  value={passwords.confirmPassword}
-                  onChange={(e) => setPasswords({ ...passwords, confirmPassword: e.target.value })}
-                  className="w-full p-3 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white dark:bg-slate-900 text-gray-800 dark:text-slate-100 font-medium placeholder-slate-400"
-                  placeholder="••••••••"
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={updatingPassword || !passwords.newPassword}
-              className="w-full sm:w-auto px-6 py-3 bg-purple-700 hover:bg-purple-800 text-white font-semibold rounded-lg transition-colors shadow-md flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
-            >
-              <Lock className="w-4 h-4" />
-              <span>{updatingPassword ? 'Updating Password...' : 'Update Password'}</span>
-            </button>
-          </form>
-        </div>
+          <button
+            type="submit"
+            disabled={updatingPassword || !passwords.newPassword}
+            className="w-full sm:w-auto px-6 py-3 bg-purple-700 hover:bg-purple-800 text-white font-semibold rounded-lg transition-colors shadow-md flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+          >
+            <Lock className="w-4 h-4" />
+            <span>{updatingPassword ? 'Updating Password...' : 'Update Password'}</span>
+          </button>
+        </form>
       </div>
-    </PayPalScriptProvider>
+    </div>
   );
 };
 
