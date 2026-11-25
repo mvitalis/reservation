@@ -10,7 +10,7 @@ export interface TierConfig {
 export const TIER_CONFIGS: Record<SubscriptionTier, TierConfig> = {
   free: {
     name: 'Free',
-    monthlyBookingLimit: 30,
+    monthlyBookingLimit: 75,
   },
   pro: {
     name: 'Pro',

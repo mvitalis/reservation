@@ -34,7 +34,7 @@ export const PLANS: Record<PlanId, PlanConfig> = {
   pro: {
     id: 'pro',
     name: 'Pro',
-    price: '$9.99/mo',
+    price: '$4.00/mo',
     description: 'Advanced features for growing businesses',
     features: ['Unlimited Services', 'Custom Booking URL', 'SMS Reminders'],
     paypalPlanId: 'P-XXXXXXXXXXXXXXXXXXXX', // <--- Your PayPal Plan ID
@@ -48,7 +48,7 @@ export const PLANS: Record<PlanId, PlanConfig> = {
   business: {
     id: 'business',
     name: 'Business',
-    price: '$24.99/mo',
+    price: '$13.00/mo',
     description: 'Full suite for multi-location teams',
     features: ['Everything in Pro', 'Multiple Locations', 'Priority Support'],
     paypalPlanId: 'P-YYYYYYYYYYYYYYYYYYYY', // <--- Your PayPal Plan ID

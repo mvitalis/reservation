@@ -22,7 +22,7 @@ const tiers: Tier[] = [
   {
     id: 'starter',
     name: 'Starter',
-    price: '$19.99',
+    price: '$4.00',
     maxServices: '10 Services',
     maxBookings: '150 Bookings / mo',
     features: ['Basic Booking System', 'Priority Email Support', 'Basic Analytics Dashboard'],
@@ -31,7 +31,7 @@ const tiers: Tier[] = [
   {
     id: 'pro',
     name: 'Pro',
-    price: '$49.99',
+    price: '$13.00',
     maxServices: 'Unlimited Services',
     maxBookings: 'Unlimited Bookings',
     features: ['Full Suite Access', '24/7 Priority Support', 'Advanced Analytics', 'Custom Branding & Domain']
