@@ -234,7 +234,7 @@ function AdminLayout({ children }: { children: React.ReactNode }) {
         {mobileMenuOpen && (
           <div className="lg:hidden mt-3 pt-3 border-t border-purple-800 flex flex-col space-y-2">
             <Link
-              to="/demo-booking"
+              to="/admin/demo-booking"
               onClick={() => setMobileMenuOpen(false)}
               className="px-3 py-2 rounded hover:bg-purple-800 transition-colors"
             >
@@ -255,7 +255,7 @@ function AdminLayout({ children }: { children: React.ReactNode }) {
               Analytics
             </Link>
             <Link
-              to="/profile"
+              to="/admin/profile"
               onClick={() => setMobileMenuOpen(false)}
               className="px-3 py-2 rounded hover:bg-purple-800 transition-colors"
             >
