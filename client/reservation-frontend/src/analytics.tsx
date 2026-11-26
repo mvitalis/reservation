@@ -1,4 +1,3 @@
-
 import { useNavigate } from 'react-router-dom';
 import { useBusinessContext } from './useBusinessContext';
 import { AnalyticsDashboard } from './AnalyticsDashboard';
@@ -32,8 +31,7 @@ export default function AnalyticsPage() {
       <AnalyticsDashboard
         businessId={businessId}
         onUpgradeClick={() => {
-          // SPA navigation to billing page
-          navigate('/admin/settings/billing');
+          navigate('/admin/profile?upgrade=pro');
         }}
       />
     </div>
