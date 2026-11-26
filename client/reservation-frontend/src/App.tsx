@@ -174,7 +174,7 @@ function AdminLayout({ children }: { children: React.ReactNode }) {
           {/* Desktop Links (se muestran desde lg; antes de lg se usa el menú hamburguesa) */}
           <div className="hidden lg:flex items-center gap-2 shrink-0">
             <Link
-              to="/demo-booking"
+              to="/admin/demo-booking"
               className="px-3 py-1 rounded transition-colors hover:bg-purple-800 whitespace-nowrap"
             >
               Customer Preview
@@ -192,7 +192,7 @@ function AdminLayout({ children }: { children: React.ReactNode }) {
               Analytics
             </Link>
             <Link
-              to="/profile"
+              to="/admin/profile"
               className="px-3 py-1 rounded transition-colors hover:bg-purple-800 whitespace-nowrap"
             >
               Profile
@@ -333,7 +333,7 @@ function App() {
           />
 
           <Route
-            path="/demo-booking"
+            path="/admin/demo-booking"
             element={
               <AdminLayout>
                 <CustomerPreviewWrapper />
@@ -342,7 +342,7 @@ function App() {
           />
 
           <Route
-            path="/profile"
+            path="/admin/profile"
             element={
               <AdminLayout>
                 <ProfilePage />
@@ -350,11 +350,13 @@ function App() {
             }
           />
 
+          {/* COMPATIBILITY REDIRECTS FOR OLD ADMIN PATHS */}
+          <Route path="/demo-booking" element={<Navigate to="/admin/demo-booking" replace />} />
+          <Route path="/profile" element={<Navigate to="/admin/profile" replace />} />
+
           {/* FALLBACK REDIRECTS */}
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
-          <Route path="/demo-booking" element={<Navigate to="/admin/demo-booking" replace />} />
-          <Route path="/profile" element={<Navigate to="/admin/profile" replace />} />
         </Routes>
       </BrowserRouter>
     </PayPalScriptProvider>
