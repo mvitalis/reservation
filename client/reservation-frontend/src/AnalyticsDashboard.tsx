@@ -1,5 +1,6 @@
 // AnalyticsDashboard.tsx
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -63,6 +64,7 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label })
 };
 
 export const AnalyticsDashboard: React.FC<Props> = ({ businessId, onUpgradeClick }) => {
+  const navigate = useNavigate();
   const [range, setRange] = useState<number>(30);
   const { data, loading, isRestricted, plan, error } = useBusinessAnalytics(businessId, range);
 
@@ -71,7 +73,7 @@ export const AnalyticsDashboard: React.FC<Props> = ({ businessId, onUpgradeClick
       onUpgradeClick();
       return;
     }
-    window.location.href = '/profile?upgrade=pro';
+    navigate('/admin/profile?upgrade=pro');
   };
 
   if (loading) {

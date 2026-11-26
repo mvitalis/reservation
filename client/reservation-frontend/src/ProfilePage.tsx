@@ -99,6 +99,7 @@ export const ProfilePage: React.FC = () => {
   const [updatingPlan, setUpdatingPlan] = useState<boolean>(false);
 
   const [targetPlan, setTargetPlan] = useState<PackageTier>('pro');
+  const [originalBusinessName, setOriginalBusinessName] = useState<string>('');
 
   const [profile, setProfile] = useState<UserProfileData>({
     businessId: null,
@@ -154,7 +155,6 @@ export const ProfilePage: React.FC = () => {
           return;
         }
 
-        // Buscar por owner_id; si no hay coincidencia, intentar por id = user.id
         let { data: business, error: bizError } = await supabase
           .from('businesses')
           .select('id, name, phone, slug, notification_email, package_tier, subscription_expires_at, business_hours, logo_url, header_image_url, primary_color, public_theme')
@@ -186,6 +186,7 @@ export const ProfilePage: React.FC = () => {
         const resolvedName = business?.name || user.user_metadata?.business_name || '';
         const resolvedSlug = business?.slug || (typeof user.user_metadata?.slug === 'string' ? user.user_metadata.slug : '') || '';
 
+        setOriginalBusinessName(resolvedName.trim());
         setProfile({
           businessId: business?.id || null,
           usernameEmail: user.email || '',
@@ -240,7 +241,6 @@ export const ProfilePage: React.FC = () => {
 
     if (!status && !transactionId && !orderId) return;
 
-    // Limpia los query params de la URL para evitar reprocesar al recargar
     window.history.replaceState({}, '', window.location.pathname);
 
     if (!status || status.toLowerCase() !== 'success') {
@@ -396,12 +396,19 @@ export const ProfilePage: React.FC = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No active session.');
 
-      const stableSlug = profile.slug.trim() || createInitialSlug(profile.businessName);
+      const trimmedName = profile.businessName.trim();
+      const nameChanged = trimmedName !== originalBusinessName.trim();
+
+      // Generar un nuevo slug si cambió el nombre del negocio o si aún no existía uno
+      const nextSlug =
+        nameChanged || !profile.slug.trim()
+          ? createInitialSlug(trimmedName)
+          : profile.slug.trim();
 
       const payload = {
-        name: profile.businessName.trim(),
+        name: trimmedName,
         phone: profile.phone.trim() || null,
-        slug: stableSlug,
+        slug: nextSlug,
         notification_email: profile.notificationEmail.trim(),
         business_hours: profile.businessHours,
         logo_url: profile.logoUrl.trim() || null,
@@ -409,6 +416,9 @@ export const ProfilePage: React.FC = () => {
         primary_color: profile.primaryColor,
         public_theme: profile.publicTheme,
       };
+
+      let finalId = profile.businessId;
+      let finalSlug = nextSlug;
 
       if (profile.businessId) {
         const { error: updateErr } = await supabase
@@ -425,21 +435,23 @@ export const ProfilePage: React.FC = () => {
           .maybeSingle();
 
         if (existingByOwner) {
+          const slugForExisting =
+            nameChanged || !existingByOwner.slug
+              ? nextSlug
+              : existingByOwner.slug;
+
           const { error: updateOwnerErr } = await supabase
             .from('businesses')
             .update({
               ...payload,
-              slug: existingByOwner.slug || stableSlug,
+              slug: slugForExisting,
             })
             .eq('id', existingByOwner.id);
 
           if (updateOwnerErr) throw updateOwnerErr;
 
-          setProfile((prev) => ({
-            ...prev,
-            businessId: existingByOwner.id,
-            slug: existingByOwner.slug || stableSlug,
-          }));
+          finalId = existingByOwner.id;
+          finalSlug = slugForExisting;
         } else {
           const { data: insertedBiz, error: insertErr } = await supabase
             .from('businesses')
@@ -455,22 +467,24 @@ export const ProfilePage: React.FC = () => {
 
           if (insertErr) throw insertErr;
 
-          setProfile((prev) => ({
-            ...prev,
-            businessId: insertedBiz?.id || null,
-            slug: insertedBiz?.slug || stableSlug,
-          }));
+          finalId = insertedBiz?.id || null;
+          finalSlug = insertedBiz?.slug || nextSlug;
         }
       }
 
+      setOriginalBusinessName(trimmedName);
       setProfile((prev) => ({
         ...prev,
-        slug: prev.slug || stableSlug,
+        businessId: finalId,
+        businessName: trimmedName,
+        slug: finalSlug,
       }));
 
       setMessage({
         type: 'success',
-        text: 'Profile settings, branding, operating hours, and public theme updated successfully!',
+        text: nameChanged
+          ? `Business name updated and new booking slug generated: ${finalSlug}`
+          : 'Profile settings, branding, operating hours, and public theme updated successfully!',
       });
     } catch (err: any) {
       console.error('Save profile error:', err);
@@ -749,7 +763,7 @@ export const ProfilePage: React.FC = () => {
             {profile.slug && (
               <div>
                 <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wide mb-1">
-                  Booking Slug (Permanent)
+                  Booking Slug (Auto-updated on Business Name change)
                 </label>
                 <input
                   type="text"
