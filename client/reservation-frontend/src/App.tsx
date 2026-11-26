@@ -333,7 +333,7 @@ function App() {
           />
 
           <Route
-            path="/admin/demo-booking"
+            path="/demo-booking"
             element={
               <AdminLayout>
                 <CustomerPreviewWrapper />
@@ -342,7 +342,7 @@ function App() {
           />
 
           <Route
-            path="/admin/profile"
+            path="/profile"
             element={
               <AdminLayout>
                 <ProfilePage />
@@ -353,6 +353,8 @@ function App() {
           {/* FALLBACK REDIRECTS */}
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
+          <Route path="/demo-booking" element={<Navigate to="/admin/demo-booking" replace />} />
+          <Route path="/profile" element={<Navigate to="/admin/profile" replace />} />
         </Routes>
       </BrowserRouter>
     </PayPalScriptProvider>
