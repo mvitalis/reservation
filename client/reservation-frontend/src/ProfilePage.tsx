@@ -857,6 +857,23 @@ export const ProfilePage: React.FC = () => {
                   />
                   <Sparkles className="w-4 h-4 text-gray-400 dark:text-slate-500 absolute left-3 top-3.5" />
                 </div>
+
+                {profile.logoUrl.trim() && (
+                  <div className="mt-3 p-3 rounded-lg bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 flex items-center gap-4">
+                    <img
+                      src={profile.logoUrl.trim()}
+                      alt="Logo Preview"
+                      className="h-14 w-14 rounded-lg object-contain bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 p-1"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                    <div className="text-xs text-gray-500 dark:text-slate-400">
+                      <p className="font-semibold text-gray-700 dark:text-slate-200">Logo Preview</p>
+                      <p className="truncate max-w-xs">{profile.logoUrl.trim()}</p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -873,6 +890,19 @@ export const ProfilePage: React.FC = () => {
                   />
                   <Image className="w-4 h-4 text-gray-400 dark:text-slate-500 absolute left-3 top-3.5" />
                 </div>
+
+                {profile.headerImageUrl.trim() && (
+                  <div className="mt-3 rounded-lg overflow-hidden border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900">
+                    <img
+                      src={profile.headerImageUrl.trim()}
+                      alt="Header Cover Preview"
+                      className="w-full h-36 object-cover"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  </div>
+                )}
               </div>
 
               <div>
