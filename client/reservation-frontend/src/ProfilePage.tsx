@@ -85,11 +85,11 @@ async function extractEdgeFunctionError(error: any, fallbackData: any): Promise<
         return `${errBody.error}${extra}`;
       }
     } catch {
-      // Ignorar si la respuesta no es JSON
+      // Ignore non-JSON error body
     }
   }
 
-  return error?.message || 'Error inesperado al comunicarse con el servidor.';
+  return error?.message || 'Unexpected error while communicating with the server.';
 }
 
 export const ProfilePage: React.FC = () => {
@@ -127,7 +127,6 @@ export const ProfilePage: React.FC = () => {
     text: string;
   } | null>(null);
 
-  // Preseleccionar plan si se navega con ?upgrade=pro o ?upgrade=business
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const upgradeParam = params.get('upgrade');
@@ -136,7 +135,6 @@ export const ProfilePage: React.FC = () => {
     }
   }, []);
 
-  // Load User and Business Data
   useEffect(() => {
     let isMounted = true;
 
@@ -229,7 +227,6 @@ export const ProfilePage: React.FC = () => {
     };
   }, []);
 
-  // Procesar retorno de WiPay desde la URL en Vercel
   const handleWiPayReturn = useCallback(async () => {
     const params = new URLSearchParams(window.location.search);
     const status = params.get('status');
@@ -246,7 +243,7 @@ export const ProfilePage: React.FC = () => {
     if (!status || status.toLowerCase() !== 'success') {
       setMessage({
         type: 'error',
-        text: 'El pago en WiPay no se completó o fue cancelado.',
+        text: 'WiPay payment was not completed or was cancelled.',
       });
       return;
     }
@@ -257,7 +254,7 @@ export const ProfilePage: React.FC = () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
-        throw new Error('Sesión expirada. Inicia sesión nuevamente para confirmar el pago.');
+        throw new Error('Session expired. Please sign in again to confirm your payment.');
       }
 
       const planToActivate =
@@ -299,13 +296,13 @@ export const ProfilePage: React.FC = () => {
 
       setMessage({
         type: 'success',
-        text: '¡Pago con WiPay confirmado! Tu plan ha sido activado/extendido por 30 días.',
+        text: 'WiPay payment confirmed! Your plan has been activated/extended for 30 days.',
       });
     } catch (err: any) {
       console.error('WiPay return verification error:', err);
       setMessage({
         type: 'error',
-        text: err?.message || 'El pago no pudo verificarse.',
+        text: err?.message || 'Payment could not be verified.',
       });
     } finally {
       setUpdatingPlan(false);
@@ -318,7 +315,6 @@ export const ProfilePage: React.FC = () => {
     }
   }, [loading, handleWiPayReturn]);
 
-  // Iniciar sesión de pago en WiPay
   const handleWiPayCheckout = async () => {
     if (targetPlan === 'starter') return;
 
@@ -328,7 +324,7 @@ export const ProfilePage: React.FC = () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
-        throw new Error('No hay una sesión activa. Por favor vuelve a iniciar sesión.');
+        throw new Error('No active session found. Please sign in again.');
       }
 
       const returnUrl = `${window.location.origin}${window.location.pathname}?plan=${targetPlan}`;
@@ -355,7 +351,7 @@ export const ProfilePage: React.FC = () => {
       console.error('WiPay checkout error:', err);
       setMessage({
         type: 'error',
-        text: err?.message || 'Error al redirigir a WiPay.',
+        text: err?.message || 'Error redirecting to WiPay.',
       });
       setUpdatingPlan(false);
     }
@@ -399,7 +395,6 @@ export const ProfilePage: React.FC = () => {
       const trimmedName = profile.businessName.trim();
       const nameChanged = trimmedName !== originalBusinessName.trim();
 
-      // Generar un nuevo slug si cambió el nombre del negocio o si aún no existía uno
       const nextSlug =
         nameChanged || !profile.slug.trim()
           ? createInitialSlug(trimmedName)
@@ -494,7 +489,6 @@ export const ProfilePage: React.FC = () => {
     }
   };
 
-  // Revertir a Starter
   const handleDowngradeToStarter = async () => {
     const confirmed = window.confirm(
       'Are you sure you want to cancel your paid plan and revert to the free Starter tier?'
@@ -587,7 +581,6 @@ export const ProfilePage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-950 py-10 px-4 sm:px-6 text-slate-900 dark:text-slate-100 font-sans">
       <div className="max-w-3xl mx-auto space-y-8">
-        {/* Page Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700">
           <div>
             <div className="flex items-center gap-2">
@@ -600,7 +593,6 @@ export const ProfilePage: React.FC = () => {
           </div>
         </div>
 
-        {/* Global Feedback Banner */}
         {message && (
           <div
             className={`p-4 rounded-xl flex items-center gap-3 text-sm font-medium ${
@@ -655,7 +647,7 @@ export const ProfilePage: React.FC = () => {
 
           {profile.subscriptionExpiresAt && (
             <div className="bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 p-3 rounded-lg text-xs text-purple-900 dark:text-purple-200 flex items-center justify-between">
-              <span>Tu plan actual vence el: <strong>{new Date(profile.subscriptionExpiresAt).toLocaleDateString()}</strong></span>
+              <span>Current plan expires on: <strong>{new Date(profile.subscriptionExpiresAt).toLocaleDateString('en-US')}</strong></span>
             </div>
           )}
 
@@ -682,7 +674,7 @@ export const ProfilePage: React.FC = () => {
 
                   {isCurrentActive && (
                     <span className="inline-flex items-center text-xs font-semibold text-green-700 dark:text-green-300">
-                      <CheckCircle2 className="w-3.5 h-3.5 mr-1 text-green-600" /> Plan Actual
+                      <CheckCircle2 className="w-3.5 h-3.5 mr-1 text-green-600" /> Current Plan
                     </span>
                   )}
                 </div>
@@ -694,7 +686,7 @@ export const ProfilePage: React.FC = () => {
             <div className="bg-gray-50 dark:bg-slate-900 p-4 rounded-xl border border-gray-200 dark:border-slate-700 space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-xs font-semibold text-gray-700 dark:text-slate-300 uppercase">
-                  Pagar / Renovar Plan {selectedPkgConfig.name} (${numericPrice} USD por 30 días)
+                  Pay / Renew {selectedPkgConfig.name} Plan (${numericPrice} USD for 30 days)
                 </span>
               </div>
 
@@ -707,8 +699,8 @@ export const ProfilePage: React.FC = () => {
                 <CreditCard className="w-4 h-4" />
                 <span>
                   {updatingPlan
-                    ? 'Redirigiendo a WiPay...'
-                    : `Pagar con WiPay — ${selectedPkgConfig.name} ($${numericPrice} USD)`}
+                    ? 'Redirecting to WiPay...'
+                    : `Pay with WiPay — ${selectedPkgConfig.name} ($${numericPrice} USD)`}
                 </span>
               </button>
             </div>
@@ -717,9 +709,9 @@ export const ProfilePage: React.FC = () => {
           {profile.selectedPackage !== 'starter' && (
             <div className="pt-2 border-t border-gray-100 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
-                <p className="text-xs font-medium text-gray-700 dark:text-slate-300">¿Deseas volver al plan gratuito?</p>
+                <p className="text-xs font-medium text-gray-700 dark:text-slate-300">Want to switch back to the free plan?</p>
                 <p className="text-xs text-gray-500 dark:text-slate-400">
-                  Esto cambiará tu cuenta al plan Starter de inmediato.
+                  This will move your account to the Starter plan right away.
                 </p>
               </div>
               <button

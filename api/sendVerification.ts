@@ -5,7 +5,7 @@ const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !supabaseServiceKey) {
-  console.error('Faltan SUPABASE_URL/VITE_SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY en el entorno.');
+  console.error('Missing SUPABASE_URL/VITE_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in environment.');
 }
 
 const supabaseAdmin = createClient(supabaseUrl!, supabaseServiceKey!);
@@ -31,7 +31,6 @@ function resolveFinalRedirect(req: any, requestedRedirect?: string): string | un
 
   const isLocalHost = (url?: string) => !!url && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i.test(url);
 
-  // Si la petición viene de un dominio público (no localhost), evitamos caer en BASE_URL=http://localhost:3000
   if (requestedRedirect && !isLocalHost(requestedRedirect)) {
     return requestedRedirect;
   }
@@ -88,21 +87,21 @@ export default async function handler(req: any, res: any) {
     const confirmationUrl = data.properties?.action_link;
 
     if (!confirmationUrl) {
-      throw new Error('No se pudo generar el enlace de confirmación.');
+      throw new Error('Could not generate confirmation link.');
     }
 
     await transporter.sendMail({
       from: `"Booking Platform" <${process.env.GMAIL_USER}>`,
       to: email,
-      subject: 'Confirma tu correo electrónico para activar tu cuenta',
+      subject: 'Confirm your email address to activate your account',
       html: `
         <div style="font-family: sans-serif; max-width: 500px; margin: auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
-          <h2 style="color: #7e22ce;">¡Hola, ${userMetadata?.full_name || 'bienvenido'}!</h2>
-          <p style="color: #334155;">Gracias por registrar tu negocio. Haz clic en el siguiente botón para verificar tu correo electrónico y activar tu panel:</p>
+          <h2 style="color: #7e22ce;">Hi ${userMetadata?.full_name || 'there'}!</h2>
+          <p style="color: #334155;">Thank you for registering your business. Click the button below to verify your email address and activate your dashboard:</p>
           <a href="${confirmationUrl}" style="display: inline-block; background-color: #7e22ce; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 16px 0;">
-            Confirmar Correo Electrónico
+            Confirm Email Address
           </a>
-          <p style="font-size: 12px; color: #64748b;">Si no creaste esta cuenta, puedes ignorar este mensaje.</p>
+          <p style="font-size: 12px; color: #64748b;">If you did not create this account, you can safely ignore this email.</p>
         </div>
       `,
     });

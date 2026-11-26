@@ -32,7 +32,6 @@ export const ClientLogin: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  // Force Light Theme Class on Document Element during mount
   useEffect(() => {
     const root = document.documentElement;
     const hadDark = root.classList.contains('dark');
@@ -43,14 +42,13 @@ export const ClientLogin: React.FC = () => {
     };
   }, []);
 
-  // Capturar errores o cancelaciones devueltos por OAuth (Google / Facebook) en la URL
   useEffect(() => {
     const oauthError = searchParams.get('error');
     const oauthErrorDesc = searchParams.get('error_description');
 
     if (oauthError || oauthErrorDesc) {
       if (oauthError === 'access_denied') {
-        setErrorMsg('Inicio de sesión cancelado. Puedes intentarlo de nuevo cuando quieras.');
+        setErrorMsg('Sign-in was cancelled. You can try again whenever you are ready.');
       } else {
         setErrorMsg(
           decodeURIComponent((oauthErrorDesc || oauthError || '').replace(/\+/g, ' '))
@@ -65,7 +63,6 @@ export const ClientLogin: React.FC = () => {
     }
   }, [searchParams, setSearchParams]);
 
-  // Detectar sesión activa (incluido el retorno desde Google / Facebook) y redirigir al panel
   useEffect(() => {
     let isMounted = true;
 
@@ -116,7 +113,6 @@ export const ClientLogin: React.FC = () => {
   const activePkg = PLANS[selectedPackage] || PLANS['pro'];
   const packageList = Object.values(PLANS);
 
-  // Slug estable para el nombre de negocio actual (no cambia en cada render)
   const generatedSlug = useMemo(() => buildSlugWithRandom(businessName), [businessName]);
 
   const getOriginUrl = () => {
@@ -154,7 +150,7 @@ export const ClientLogin: React.FC = () => {
     const result = await response.json();
 
     if (!response.ok) {
-      throw new Error(result.error || 'No se pudo completar el registro.');
+      throw new Error(result.error || 'Could not complete account registration.');
     }
 
     return result;
@@ -171,7 +167,7 @@ export const ClientLogin: React.FC = () => {
         await registerUserViaApi();
 
         setSuccessMsg(
-          `¡Cuenta creada! Hemos enviado un correo de verificación a ${email}. Por favor, revisa tu bandeja de entrada (o spam) y haz clic en el enlace para activar tu cuenta.`
+          `Account created! We sent a verification email to ${email}. Please check your inbox (or spam folder) and click the link to activate your account.`
         );
         setIsSignUp(false);
         setPassword('');
@@ -203,7 +199,7 @@ export const ClientLogin: React.FC = () => {
       }
     } catch (err: any) {
       if (err.message?.toLowerCase().includes('email not confirmed')) {
-        setErrorMsg('Tu correo electrónico aún no ha sido confirmado. Revisa tu bandeja de entrada y haz clic en el enlace de verificación.');
+        setErrorMsg('Your email address has not been confirmed yet. Please check your inbox and click the verification link.');
       } else {
         setErrorMsg(err.message || 'An unexpected error occurred.');
       }
@@ -212,11 +208,12 @@ export const ClientLogin: React.FC = () => {
     }
   };
 
-  // Función para autenticación con Google o Facebook
   const handleSocialLogin = async (provider: 'google' | 'facebook') => {
     setErrorMsg(null);
     setSuccessMsg(null);
     const originUrl = getOriginUrl();
+    const providerLabel = provider === 'google' ? 'Google' : 'Facebook';
+
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
@@ -227,7 +224,7 @@ export const ClientLogin: React.FC = () => {
       });
       if (error) throw error;
     } catch (err: any) {
-      setErrorMsg(err.message || `Error connecting with ${provider}`);
+      setErrorMsg(err.message || `Error connecting with ${providerLabel}.`);
     }
   };
 
@@ -267,7 +264,6 @@ export const ClientLogin: React.FC = () => {
             </div>
           )}
 
-          {/* Botones de Redes Sociales (Google & Facebook) */}
           <div className="space-y-3 mb-6">
             <button
               type="button"
@@ -280,7 +276,7 @@ export const ClientLogin: React.FC = () => {
                 <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
               </svg>
-              Continuar con Google
+              Continue with Google
             </button>
 
             <button
@@ -291,13 +287,13 @@ export const ClientLogin: React.FC = () => {
               <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
                 <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
               </svg>
-              Continuar con Facebook
+              Continue with Facebook
             </button>
           </div>
 
           <div className="flex items-center my-6">
             <div className="flex-grow border-t border-slate-200"></div>
-            <span className="flex-shrink mx-3 text-xs text-slate-400 uppercase font-semibold">O con correo electrónico</span>
+            <span className="flex-shrink mx-3 text-xs text-slate-400 uppercase font-semibold">Or with email</span>
             <div className="flex-grow border-t border-slate-200"></div>
           </div>
 

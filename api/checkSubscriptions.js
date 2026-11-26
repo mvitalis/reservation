@@ -3,13 +3,12 @@ import nodemailer from 'nodemailer';
 
 const supabase = createClient(
   process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY // Clave de servicio para modificar sin sesión de usuario
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 export default async function handler(req, res) {
-  // Seguridad básica para asegurar que solo Vercel Cron ejecute esto
   if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
-    return res.status(401).json({ error: 'No autorizado' });
+    return res.status(401).json({ error: 'Unauthorized' });
   }
 
   const now = new Date();
@@ -17,7 +16,7 @@ export default async function handler(req, res) {
   inSevenDays.setDate(now.getDate() + 7);
 
   try {
-    // 1. DEGRADAR AL PLAN GRATIS ('starter') A LOS QUE YA VENCIERON
+    // 1. Downgrade expired subscriptions to the free 'starter' plan
     const { data: expiredBusinesses } = await supabase
       .from('businesses')
       .select('id, name, owner_id')
@@ -36,7 +35,7 @@ export default async function handler(req, res) {
         .in('id', expiredIds);
     }
 
-    // 2. ENVIAR CORREO 1 SEMANA ANTES DE VENCER
+    // 2. Send a reminder email 7 days before expiration
     const { data: expiringSoon } = await supabase
       .from('businesses')
       .select('id, name, package_tier, subscription_expires_at, owner_email')
@@ -55,23 +54,22 @@ export default async function handler(req, res) {
       });
 
       for (const biz of expiringSoon) {
-        const expireDateStr = new Date(biz.subscription_expires_at).toLocaleDateString();
+        const expireDateStr = new Date(biz.subscription_expires_at).toLocaleDateString('en-US');
 
         await transporter.sendMail({
-          from: `"Soporte" <${process.env.GMAIL_USER}>`,
+          from: `"Support" <${process.env.GMAIL_USER}>`,
           to: biz.owner_email,
-          subject: `Tu plan ${biz.package_tier.toUpperCase()} vence en 7 días`,
+          subject: `Your ${biz.package_tier.toUpperCase()} plan expires in 7 days`,
           html: `
             <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
-              <h2 style="color: #7e22ce;">Hola ${biz.name},</h2>
-              <p>Te recordamos que tu mes del plan <strong>${biz.package_tier.toUpperCase()}</strong> finalizará el <strong>${expireDateStr}</strong>.</p>
-              <p>Para mantener tus beneficios activos sin interrupciones, ingresa a tu panel de administración y renueva por un mes más.</p>
-              <p style="font-size: 13px; color: #64748b;">Si decides no renovar, tu cuenta pasará automáticamente al plan gratuito (Starter) al finalizar el período.</p>
+              <h2 style="color: #7e22ce;">Hi ${biz.name},</h2>
+              <p>This is a reminder that your current 30-day <strong>${biz.package_tier.toUpperCase()}</strong> plan will expire on <strong>${expireDateStr}</strong>.</p>
+              <p>To keep your plan benefits active without interruption, log in to your admin dashboard and renew for another month.</p>
+              <p style="font-size: 13px; color: #64748b;">If you choose not to renew, your account will automatically switch to the free Starter plan when the billing period ends.</p>
             </div>
           `,
         });
 
-        // Marcar como enviado para no repetir el correo mañana
         await supabase
           .from('businesses')
           .update({ renewal_reminder_sent: true })
@@ -85,7 +83,7 @@ export default async function handler(req, res) {
       reminded: expiringSoon?.length || 0,
     });
   } catch (error) {
-    console.error('Error en cron de suscripciones:', error);
-    return res.status(500).json({ error: error.message });
+    console.error('Subscription cron error:', error);
+    return res.status(500).json({ error: error.message || 'Subscription cron failed.' });
   }
 }
