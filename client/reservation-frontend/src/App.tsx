@@ -333,7 +333,7 @@ function App() {
           />
 
           <Route
-            path="/demo-booking"
+            path="/admin/demo-booking"
             element={
               <AdminLayout>
                 <CustomerPreviewWrapper />
@@ -342,7 +342,7 @@ function App() {
           />
 
           <Route
-            path="/profile"
+            path="/admin/profile"
             element={
               <AdminLayout>
                 <ProfilePage />
