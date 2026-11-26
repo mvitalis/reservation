@@ -166,49 +166,53 @@ function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="w-full min-h-screen overflow-x-hidden bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-200">
       <nav className="w-full bg-purple-900 text-white p-3 shadow-sm relative z-50">
-        <div className="max-w-7xl mx-auto flex justify-between items-center text-sm">
-          <span className="font-bold tracking-wide">Reservation Manager Pro</span>
+        <div className="max-w-7xl mx-auto flex justify-between items-center gap-3 text-sm">
+          <span className="font-bold tracking-wide whitespace-nowrap shrink-0">
+            Reservation Manager Pro
+          </span>
 
-          {/* Desktop Links */}
-          <div className="hidden md:flex items-center space-x-2">
+          {/* Desktop Links (se muestran desde lg; antes de lg se usa el menú hamburguesa) */}
+          <div className="hidden lg:flex items-center gap-2 shrink-0">
             <Link
               to="/demo-booking"
-              className="px-3 py-1 rounded transition-colors hover:bg-purple-800"
+              className="px-3 py-1 rounded transition-colors hover:bg-purple-800 whitespace-nowrap"
             >
               Customer Preview
             </Link>
             <Link
               to="/admin"
-              className="px-3 py-1 rounded transition-colors hover:bg-purple-800"
+              className="px-3 py-1 rounded transition-colors hover:bg-purple-800 whitespace-nowrap"
             >
               Admin Dashboard
             </Link>
             <Link
               to="/admin/analytics"
-              className="px-3 py-1 rounded transition-colors hover:bg-purple-800 flex items-center gap-1"
+              className="px-3 py-1 rounded transition-colors hover:bg-purple-800 flex items-center gap-1 whitespace-nowrap"
             >
               Analytics
             </Link>
             <Link
               to="/profile"
-              className="px-3 py-1 rounded transition-colors hover:bg-purple-800"
+              className="px-3 py-1 rounded transition-colors hover:bg-purple-800 whitespace-nowrap"
             >
               Profile
             </Link>
 
-            <ThemeToggle />
+            <div className="shrink-0">
+              <ThemeToggle />
+            </div>
 
             <button
               type="button"
               onClick={handleLogout}
-              className="ml-2 px-3 py-1 rounded bg-purple-950 text-purple-200 hover:text-white hover:bg-red-700 transition-colors font-medium focus:outline-none cursor-pointer"
+              className="ml-2 px-3 py-1 rounded bg-purple-950 text-purple-200 hover:text-white hover:bg-red-700 transition-colors font-medium focus:outline-none cursor-pointer whitespace-nowrap shrink-0"
             >
               Sign Out
             </button>
           </div>
 
-          {/* Mobile Hamburger & Theme Toggle */}
-          <div className="flex md:hidden items-center gap-2">
+          {/* Hamburger & Theme Toggle (activos por debajo de lg) */}
+          <div className="flex lg:hidden items-center gap-2 shrink-0">
             <ThemeToggle />
             <button
               type="button"
@@ -226,9 +230,9 @@ function AdminLayout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
-        {/* Mobile Dropdown Menu Links */}
+        {/* Dropdown Menu Links */}
         {mobileMenuOpen && (
-          <div className="md:hidden mt-3 pt-3 border-t border-purple-800 flex flex-col space-y-2">
+          <div className="lg:hidden mt-3 pt-3 border-t border-purple-800 flex flex-col space-y-2">
             <Link
               to="/demo-booking"
               onClick={() => setMobileMenuOpen(false)}
