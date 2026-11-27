@@ -7,6 +7,7 @@ interface SupportTicketFormProps {
   businessId?: string | null;
   businessName?: string;
   packageTier?: string;
+  onTicketCreated?: () => void;
 }
 
 const MAX_FILES = 3;
@@ -133,6 +134,7 @@ export const SupportTicketForm: React.FC<SupportTicketFormProps> = ({
       setSubject('');
       setMessage('');
       setFiles([]);
+      onTicketCreated?.();
     } catch (err: any) {
       setErrorMsg(err.message || 'An unexpected error occurred while submitting the ticket.');
     } finally {
