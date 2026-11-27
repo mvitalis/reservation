@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from './supabaseClient';
 import { UserManagement } from './UserManagement';
 import { GlobalSystemLogs } from './GlobalSystemLogs';
 import { PlatformSettings } from './PlatformSettings';
+import { AdminSupportTickets } from './AdminSupportTickets';
 import { ThemeToggle } from './ThemeToggle';
 
 interface PlatformStats {
@@ -22,12 +23,13 @@ interface BusinessRecord {
   created_at: string;
 }
 
-type TabType = 'overview' | 'users' | 'logs' | 'settings';
+type TabType = 'overview' | 'tickets' | 'users' | 'logs' | 'settings';
 
 export const MasterAdminDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
+  const [openTicketCount, setOpenTicketCount] = useState<number>(0);
   const [stats, setStats] = useState<PlatformStats>({
     totalBusinesses: 0,
     totalServices: 0,
@@ -48,6 +50,21 @@ export const MasterAdminDashboard: React.FC = () => {
   const [editName, setEditName] = useState<string>('');
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
+  const fetchOpenTicketsCount = useCallback(async () => {
+    try {
+      const { count, error } = await supabase
+        .from('support_tickets')
+        .select('*', { count: 'exact', head: true })
+        .in('status', ['open', 'in_progress']);
+
+      if (!error && typeof count === 'number') {
+        setOpenTicketCount(count);
+      }
+    } catch (err) {
+      console.error('Error fetching open ticket count:', err);
+    }
+  }, []);
+
   const fetchMasterData = async () => {
     setLoading(true);
     try {
@@ -58,7 +75,7 @@ export const MasterAdminDashboard: React.FC = () => {
         activeBookingsRes,
         revenueRes,
         dbSizeRes,
-        bizListRes
+        bizListRes,
       ] = await Promise.all([
         supabase.from('businesses').select('*', { count: 'exact', head: true }),
         supabase.from('services').select('*', { count: 'exact', head: true }),
@@ -84,6 +101,7 @@ export const MasterAdminDashboard: React.FC = () => {
       });
 
       setBusinesses(bizListRes.data || []);
+      await fetchOpenTicketsCount();
     } catch (err) {
       console.error('Error loading master dashboard data:', err);
     } finally {
@@ -94,6 +112,12 @@ export const MasterAdminDashboard: React.FC = () => {
   useEffect(() => {
     fetchMasterData();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'tickets') {
+      fetchOpenTicketsCount();
+    }
+  }, [activeTab, fetchOpenTicketsCount]);
 
   const handleLogout = async () => {
     try {
@@ -193,6 +217,22 @@ export const MasterAdminDashboard: React.FC = () => {
             </button>
             <button
               type="button"
+              onClick={() => setActiveTab('tickets')}
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded transition-colors cursor-pointer ${
+                activeTab === 'tickets'
+                  ? 'bg-purple-800 text-white font-semibold'
+                  : 'text-purple-100 hover:bg-purple-800'
+              }`}
+            >
+              <span>Support Tickets</span>
+              {openTicketCount > 0 && (
+                <span className="px-1.5 py-0.5 text-[11px] font-bold rounded-full bg-amber-400 text-slate-950">
+                  {openTicketCount}
+                </span>
+              )}
+            </button>
+            <button
+              type="button"
               onClick={() => setActiveTab('users')}
               className={`px-3 py-1 rounded transition-colors cursor-pointer ${
                 activeTab === 'users'
@@ -226,7 +266,7 @@ export const MasterAdminDashboard: React.FC = () => {
             </button>
 
             <ThemeToggle />
-           
+
             <button
               type="button"
               onClick={handleLogout}
@@ -269,6 +309,20 @@ export const MasterAdminDashboard: React.FC = () => {
             </button>
             <button
               type="button"
+              onClick={() => { setActiveTab('tickets'); setMobileMenuOpen(false); }}
+              className={`flex items-center justify-between text-left px-3 py-2 rounded transition-colors cursor-pointer ${
+                activeTab === 'tickets' ? 'bg-purple-800 font-semibold' : 'hover:bg-purple-800'
+              }`}
+            >
+              <span>Support Tickets</span>
+              {openTicketCount > 0 && (
+                <span className="px-2 py-0.5 text-[11px] font-bold rounded-full bg-amber-400 text-slate-950">
+                  {openTicketCount}
+                </span>
+              )}
+            </button>
+            <button
+              type="button"
               onClick={() => { setActiveTab('users'); setMobileMenuOpen(false); }}
               className={`text-left px-3 py-2 rounded transition-colors cursor-pointer ${
                 activeTab === 'users' ? 'bg-purple-800 font-semibold' : 'hover:bg-purple-800'
@@ -308,7 +362,7 @@ export const MasterAdminDashboard: React.FC = () => {
       {/* Main Content Area */}
       <div className="p-6">
         <div className="max-w-6xl mx-auto space-y-6">
-          
+
           {/* Dashboard Title & Refresh Action */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700">
             <div>
@@ -334,7 +388,7 @@ export const MasterAdminDashboard: React.FC = () => {
           {/* Primary Dashboard View (Metrics + Directory Combined) */}
           {activeTab === 'overview' && (
             <div className="space-y-6">
-              
+
               {/* Metrics Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm">
@@ -369,7 +423,7 @@ export const MasterAdminDashboard: React.FC = () => {
               <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm overflow-hidden border border-slate-100 dark:border-slate-700">
                 <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Registered Businesses</h3>
-                  
+
                   {/* Search and Sort Filter Toolbar */}
                   <div className="flex flex-col sm:flex-row gap-3">
                     <input
@@ -443,6 +497,7 @@ export const MasterAdminDashboard: React.FC = () => {
             </div>
           )}
 
+          {activeTab === 'tickets' && <AdminSupportTickets />}
           {activeTab === 'users' && <UserManagement />}
           {activeTab === 'logs' && <GlobalSystemLogs />}
           {activeTab === 'settings' && <PlatformSettings />}
