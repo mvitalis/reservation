@@ -164,7 +164,7 @@ function AdminSupportPage() {
 
         const { data: biz } = await supabase
           .from('businesses')
-          .select('id, name, business_name, package_tier, plan')
+          .select('*')
           .eq('owner_id', user.id)
           .maybeSingle();
 
