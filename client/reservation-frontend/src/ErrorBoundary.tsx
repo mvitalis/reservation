@@ -13,7 +13,7 @@ interface State {
 
 class ErrorBoundary extends Component<Props, State> {
   public state: State = {
-    hasError: false
+    hasError: false,
   };
 
   public static getDerivedStateFromError(error: Error): State {
@@ -27,20 +27,21 @@ class ErrorBoundary extends Component<Props, State> {
   public render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-          <div className="bg-white p-8 rounded-2xl shadow-md max-w-md w-full text-center">
+        <div className="min-h-screen bg-gray-50 dark:bg-slate-950 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-8 rounded-2xl shadow-md max-w-md w-full text-center">
             <div className="flex justify-center mb-4">
-              <div className="p-3 bg-red-100 text-red-600 rounded-full">
+              <div className="p-3 bg-red-100 dark:bg-red-950/70 text-red-600 dark:text-red-400 rounded-full">
                 <AlertTriangle size={32} />
               </div>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Something went wrong</h1>
-            <p className="text-gray-600 mb-6 text-sm">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100 mb-2">Something went wrong</h1>
+            <p className="text-gray-600 dark:text-slate-400 mb-6 text-sm">
               We encountered an unexpected error. Please try refreshing the page or contact support if the issue persists.
             </p>
             <button
+              type="button"
               onClick={() => window.location.reload()}
-              className="w-full py-3 px-4 bg-purple-700 hover:bg-purple-800 text-white font-semibold rounded-xl transition-all duration-200 hover:shadow-md"
+              className="w-full py-3 px-4 bg-purple-700 hover:bg-purple-800 text-white font-semibold rounded-xl transition-all duration-200 hover:shadow-md cursor-pointer"
             >
               Refresh Page
             </button>
