@@ -196,18 +196,20 @@ export const MasterAdminDashboard: React.FC = () => {
     });
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 transition-colors">
-      {/* Header Navigation with Responsive Hamburger */}
-      <nav className="bg-purple-900 dark:bg-purple-950 text-white p-3 shadow-sm relative z-50">
-        <div className="max-w-6xl mx-auto flex justify-between items-center text-sm">
-          <span className="font-bold tracking-wide">Reservation Manager Pro</span>
+    <div className="min-h-screen w-full overflow-x-hidden bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 transition-colors">
+      {/* Header Navigation: pasa a hamburguesa antes de que los ítems se doblen (por debajo de xl) */}
+      <nav className="w-full bg-purple-900 dark:bg-purple-950 text-white p-3 shadow-sm relative z-50">
+        <div className="max-w-7xl mx-auto flex justify-between items-center gap-3 text-sm">
+          <span className="font-bold tracking-wide whitespace-nowrap shrink-0">
+            Reservation Manager Pro
+          </span>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-1">
+          {/* Desktop Navigation (desde xl) */}
+          <div className="hidden xl:flex items-center gap-1.5 shrink-0">
             <button
               type="button"
               onClick={() => setActiveTab('overview')}
-              className={`px-3 py-1 rounded transition-colors cursor-pointer ${
+              className={`px-3 py-1.5 rounded transition-colors cursor-pointer whitespace-nowrap ${
                 activeTab === 'overview'
                   ? 'bg-purple-800 text-white font-semibold'
                   : 'text-purple-100 hover:bg-purple-800'
@@ -218,7 +220,7 @@ export const MasterAdminDashboard: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveTab('tickets')}
-              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded transition-colors cursor-pointer ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded transition-colors cursor-pointer whitespace-nowrap ${
                 activeTab === 'tickets'
                   ? 'bg-purple-800 text-white font-semibold'
                   : 'text-purple-100 hover:bg-purple-800'
@@ -234,7 +236,7 @@ export const MasterAdminDashboard: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveTab('users')}
-              className={`px-3 py-1 rounded transition-colors cursor-pointer ${
+              className={`px-3 py-1.5 rounded transition-colors cursor-pointer whitespace-nowrap ${
                 activeTab === 'users'
                   ? 'bg-purple-800 text-white font-semibold'
                   : 'text-purple-100 hover:bg-purple-800'
@@ -245,7 +247,7 @@ export const MasterAdminDashboard: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveTab('logs')}
-              className={`px-3 py-1 rounded transition-colors cursor-pointer ${
+              className={`px-3 py-1.5 rounded transition-colors cursor-pointer whitespace-nowrap ${
                 activeTab === 'logs'
                   ? 'bg-purple-800 text-white font-semibold'
                   : 'text-purple-100 hover:bg-purple-800'
@@ -256,7 +258,7 @@ export const MasterAdminDashboard: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveTab('settings')}
-              className={`px-3 py-1 rounded transition-colors cursor-pointer ${
+              className={`px-3 py-1.5 rounded transition-colors cursor-pointer whitespace-nowrap ${
                 activeTab === 'settings'
                   ? 'bg-purple-800 text-white font-semibold'
                   : 'text-purple-100 hover:bg-purple-800'
@@ -265,23 +267,26 @@ export const MasterAdminDashboard: React.FC = () => {
               Settings
             </button>
 
-            <ThemeToggle />
+            <div className="shrink-0 ml-1">
+              <ThemeToggle />
+            </div>
 
             <button
               type="button"
               onClick={handleLogout}
-              className="ml-2 px-3 py-1 rounded bg-purple-950 text-purple-200 hover:text-white hover:bg-red-700 transition-colors font-medium focus:outline-none cursor-pointer"
+              className="ml-1 px-3 py-1.5 rounded bg-purple-950 text-purple-200 hover:text-white hover:bg-red-700 transition-colors font-medium focus:outline-none cursor-pointer whitespace-nowrap shrink-0"
             >
               Sign Out
             </button>
           </div>
 
-          {/* Mobile Hamburger Button & Theme Toggle */}
-          <div className="flex md:hidden items-center gap-2">
+          {/* Mobile / Tablet Hamburger Button & Theme Toggle (por debajo de xl) */}
+          <div className="flex xl:hidden items-center gap-2 shrink-0">
             <ThemeToggle />
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label="Toggle navigation menu"
               className="p-2 rounded bg-purple-800 text-white focus:outline-none cursor-pointer"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -295,9 +300,9 @@ export const MasterAdminDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Mobile Dropdown Menu */}
+        {/* Dropdown Menu (por debajo de xl) */}
         {mobileMenuOpen && (
-          <div className="md:hidden mt-3 pt-3 border-t border-purple-800 flex flex-col space-y-2">
+          <div className="xl:hidden mt-3 pt-3 border-t border-purple-800 flex flex-col space-y-2">
             <button
               type="button"
               onClick={() => { setActiveTab('overview'); setMobileMenuOpen(false); }}
@@ -360,8 +365,8 @@ export const MasterAdminDashboard: React.FC = () => {
       </nav>
 
       {/* Main Content Area */}
-      <div className="p-6">
-        <div className="max-w-6xl mx-auto space-y-6">
+      <div className="p-4 sm:p-6">
+        <div className="max-w-6xl mx-auto space-y-6 min-w-0">
 
           {/* Dashboard Title & Refresh Action */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700">
@@ -378,7 +383,7 @@ export const MasterAdminDashboard: React.FC = () => {
               <button
                 type="button"
                 onClick={fetchMasterData}
-                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium text-sm rounded-lg transition-colors shadow-sm cursor-pointer"
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium text-sm rounded-lg transition-colors shadow-sm cursor-pointer whitespace-nowrap"
               >
                 Refresh Data
               </button>
@@ -454,11 +459,11 @@ export const MasterAdminDashboard: React.FC = () => {
                     <table className="w-full text-left border-collapse">
                       <thead>
                         <tr className="bg-slate-50 dark:bg-slate-900/50 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase border-b border-slate-200 dark:border-slate-700">
-                          <th className="p-4">Name</th>
-                          <th className="p-4">Business ID</th>
-                          <th className="p-4">Owner ID</th>
-                          <th className="p-4">Created Date</th>
-                          <th className="p-4 text-right">Actions</th>
+                          <th className="p-4 whitespace-nowrap">Name</th>
+                          <th className="p-4 whitespace-nowrap">Business ID</th>
+                          <th className="p-4 whitespace-nowrap">Owner ID</th>
+                          <th className="p-4 whitespace-nowrap">Created Date</th>
+                          <th className="p-4 text-right whitespace-nowrap">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-200 dark:divide-slate-700 text-sm">
@@ -467,10 +472,10 @@ export const MasterAdminDashboard: React.FC = () => {
                             <td className="p-4 font-semibold text-slate-900 dark:text-slate-100">{biz.name || 'Unnamed Business'}</td>
                             <td className="p-4 font-mono text-xs text-slate-500 dark:text-slate-400">{biz.id}</td>
                             <td className="p-4 font-mono text-xs text-slate-500 dark:text-slate-400">{biz.owner_id}</td>
-                            <td className="p-4 text-slate-600 dark:text-slate-300">
+                            <td className="p-4 text-slate-600 dark:text-slate-300 whitespace-nowrap">
                               {biz.created_at ? new Date(biz.created_at).toLocaleDateString() : 'N/A'}
                             </td>
-                            <td className="p-4 text-right space-x-2">
+                            <td className="p-4 text-right space-x-2 whitespace-nowrap">
                               <button
                                 type="button"
                                 onClick={() => handleOpenEdit(biz)}
