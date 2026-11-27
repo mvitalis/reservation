@@ -18,6 +18,7 @@ export const SupportTicketForm: React.FC<SupportTicketFormProps> = ({
   businessId,
   businessName,
   packageTier,
+  onTicketCreated,
 }) => {
   const [category, setCategory] = useState('Bug / Technical Issue');
   const [subject, setSubject] = useState('');
