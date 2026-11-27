@@ -31,7 +31,7 @@ const tiers: Tier[] = [
   {
     id: 'pro',
     name: 'Pro',
-    price: '$13.00',
+    price: '$9.00',
     maxServices: 'Unlimited Services',
     maxBookings: 'Unlimited Bookings',
     features: ['Full Suite Access', '24/7 Priority Support', 'Advanced Analytics', 'Custom Branding & Domain']
