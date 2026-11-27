@@ -36,7 +36,7 @@ export const PLANS: Record<PlanId, PlanConfig> = {
     name: 'Pro',
     price: '$4.00/mo',
     description: 'Advanced features for growing businesses',
-    features: ['Unlimited Services', 'Custom Booking URL', 'SMS Reminders'],
+    features: ['Unlimited Services', '300 Bookings / mth', 'Email Notifications'],
     paypalPlanId: 'P-XXXXXXXXXXXXXXXXXXXX', // <--- Your PayPal Plan ID
     limits: {
       maxServices: 999,
