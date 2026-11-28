@@ -67,23 +67,23 @@ export const SupportTicketForm: React.FC<SupportTicketFormProps> = ({
     const urls: string[] = [];
 
     for (const file of files) {
-      const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-      const filePath = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const fileExt = file.name.split('.').pop()?.toLowerCase() || 'png';
+        const filePath = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${fileExt}`;
 
-      const { error: uploadError } = await supabase.storage
+        const { error: uploadError } = await supabase.storage
         .from('support-attachments')
         .upload(filePath, file, {
-          contentType: file.type,
-          upsert: false,
+            contentType: file.type,
+            upsert: false,
         });
 
-      if (uploadError) {
-        throw new Error(`Failed to upload "${file.name}": ${uploadError.message}`);
-      }
+        if (uploadError) {
+        throw new Error(uploadError.message || 'Image upload failed.');
+        }
 
-      const { data: signedData } = await supabase.storage
+        const { data: publicUrlData } = supabase.storage
         .from('support-attachments')
-        .createSignedUrl(filePath, 60 * 60 * 24 * 30); // 30 días
+        .getPublicUrl(filePath);
 
       if (signedData?.signedUrl) {
         urls.push(signedData.signedUrl);
