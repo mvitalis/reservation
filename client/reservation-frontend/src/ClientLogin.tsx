@@ -144,15 +144,23 @@ export const ClientLogin: React.FC = () => {
 
     try {
       const originUrl = getOriginUrl();
-      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail.trim(), {
-        redirectTo: `${originUrl}/reset-password`,
+      const response = await fetch('/api/auth/request-password-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: resetEmail.trim(),
+          redirectTo: `${originUrl}/reset-password`,
+        }),
       });
 
-      if (error) throw error;
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Could not send reset email. Please try again later.');
+      }
 
       setResetStatus({
         type: 'success',
-        text: 'If an account exists for that email, a password reset link has been sent. Please check your inbox and spam folder.',
+        text: data.message || 'If an account exists for that email, a password reset link has been sent. Please check your inbox and spam folder.',
       });
     } catch (err: any) {
       setResetStatus({

@@ -4,6 +4,7 @@ import { PayPalScriptProvider } from '@paypal/react-paypal-js';
 import { AdminDashboard } from './AdminDashboard';
 import { PublicBookingView } from './PublicBookingView';
 import { ClientLogin } from './ClientLogin';
+import { ResetPasswordPage } from './ResetPasswordPage';
 import { SetupBusiness } from './SetupBusiness';
 import { ProfilePage } from './ProfilePage';
 import AnalyticsPage from './analytics';
@@ -368,6 +369,7 @@ function App() {
         <Routes>
           {/* AUTHENTICATION & ONBOARDING */}
           <Route path="/login" element={<ClientLogin />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/setup-business" element={<SetupBusiness />} />
 
           {/* PUBLIC CUSTOMER ROUTES */}
