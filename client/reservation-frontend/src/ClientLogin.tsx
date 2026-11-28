@@ -28,6 +28,12 @@ export const ClientLogin: React.FC = () => {
   const [password, setPassword] = useState('');
   const [businessName, setBusinessName] = useState('');
 
+  // Forgot password state
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetStatus, setResetStatus] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -121,6 +127,41 @@ export const ClientLogin: React.FC = () => {
       return envUrl.replace(/\/+$/, '');
     }
     return window.location.origin.replace(/\/+$/, '');
+  };
+
+  const handleToggleForgotPassword = () => {
+    setResetStatus(null);
+    if (!showForgotPassword && email.trim()) {
+      setResetEmail(email.trim());
+    }
+    setShowForgotPassword((prev) => !prev);
+  };
+
+  const handlePasswordResetRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setResetLoading(true);
+    setResetStatus(null);
+
+    try {
+      const originUrl = getOriginUrl();
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail.trim(), {
+        redirectTo: `${originUrl}/reset-password`,
+      });
+
+      if (error) throw error;
+
+      setResetStatus({
+        type: 'success',
+        text: 'If an account exists for that email, a password reset link has been sent. Please check your inbox and spam folder.',
+      });
+    } catch (err: any) {
+      setResetStatus({
+        type: 'error',
+        text: err?.message || 'Could not send reset email. Please try again later.',
+      });
+    } finally {
+      setResetLoading(false);
+    }
   };
 
   const registerUserViaApi = async () => {
@@ -240,6 +281,7 @@ export const ClientLogin: React.FC = () => {
             type="button"
             onClick={() => {
               setIsSignUp(!isSignUp);
+              setShowForgotPassword(false);
               setErrorMsg(null);
               setSuccessMsg(null);
             }}
@@ -385,7 +427,7 @@ export const ClientLogin: React.FC = () => {
 
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-slate-700">Email Address</label>
-              <input 
+              <input
                 id="email"
                 type="email"
                 required
@@ -394,7 +436,7 @@ export const ClientLogin: React.FC = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 className="mt-1 block w-full rounded-md border border-slate-300 !bg-white text-slate-900 px-3 py-2 shadow-sm focus:border-purple-500 focus:outline-none focus:ring-purple-500 sm:text-sm"
                 placeholder="you@example.com"
-                style={{ 
+                style={{
                   WebkitBoxShadow: '0 0 0 30px white inset',
                   WebkitTextFillColor: '#0f172a',
                   color: '#0f172a'
@@ -410,7 +452,18 @@ export const ClientLogin: React.FC = () => {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-slate-700">Password</label>
+              <div className="flex items-center justify-between">
+                <label htmlFor="password" className="block text-sm font-medium text-slate-700">Password</label>
+                {!isSignUp && (
+                  <button
+                    type="button"
+                    onClick={handleToggleForgotPassword}
+                    className="text-xs font-semibold text-purple-600 hover:text-purple-500 underline focus:outline-none cursor-pointer"
+                  >
+                    Forgot password?
+                  </button>
+                )}
+              </div>
               <input
                 id="password"
                 type="password"
@@ -421,7 +474,7 @@ export const ClientLogin: React.FC = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 className="mt-1 block w-full rounded-md border border-slate-300 !bg-white text-slate-900 px-3 py-2 shadow-sm focus:border-purple-500 focus:outline-none focus:ring-purple-500 sm:text-sm"
                 placeholder="••••••••"
-                style={{ 
+                style={{
                   WebkitBoxShadow: '0 0 0 30px white inset',
                   WebkitTextFillColor: '#0f172a',
                   color: '#0f172a'
@@ -450,6 +503,61 @@ export const ClientLogin: React.FC = () => {
               </button>
             </div>
           </form>
+
+          {!isSignUp && showForgotPassword && (
+            <div className="mt-6 pt-6 border-t border-slate-200">
+              <form onSubmit={handlePasswordResetRequest} className="space-y-3 bg-slate-50 p-4 rounded-lg border border-slate-200">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-slate-900">Forgot your password?</h3>
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotPassword(false)}
+                    className="text-xs text-slate-500 hover:text-slate-700 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                </div>
+                <p className="text-xs text-slate-600">
+                  Enter the email address for your account and we will send a link to reset your password.
+                </p>
+
+                {resetStatus && (
+                  <div
+                    className={`p-3 rounded text-xs font-medium border ${
+                      resetStatus.type === 'success'
+                        ? 'bg-green-50 border-green-200 text-green-800'
+                        : 'bg-red-50 border-red-200 text-red-700'
+                    }`}
+                  >
+                    {resetStatus.text}
+                  </div>
+                )}
+
+                <div>
+                  <label htmlFor="reset-email" className="block text-xs font-medium text-slate-700 mb-1">
+                    Account Email
+                  </label>
+                  <input
+                    id="reset-email"
+                    type="email"
+                    required
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    className="block w-full rounded-md border border-slate-300 bg-white text-slate-900 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-purple-500"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={resetLoading}
+                  className="w-full flex justify-center py-2 px-4 rounded-md text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50 transition-colors cursor-pointer"
+                >
+                  {resetLoading ? 'Sending Reset Link...' : 'Send Reset Link'}
+                </button>
+              </form>
+            </div>
+          )}
         </div>
       </div>
     </div>
