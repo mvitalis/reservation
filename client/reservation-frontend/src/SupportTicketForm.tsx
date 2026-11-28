@@ -67,31 +67,26 @@ export const SupportTicketForm: React.FC<SupportTicketFormProps> = ({
     const urls: string[] = [];
 
     for (const file of files) {
-        const fileExt = file.name.split('.').pop()?.toLowerCase() || 'png';
-        const filePath = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${fileExt}`;
+      const fileExt = file.name.split('.').pop()?.toLowerCase() || 'png';
+      const filePath = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${fileExt}`;
 
-        const { error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('support-attachments')
         .upload(filePath, file, {
-            contentType: file.type,
-            upsert: false,
+          contentType: file.type,
+          upsert: false,
         });
 
-        if (uploadError) {
+      if (uploadError) {
         throw new Error(uploadError.message || 'Image upload failed.');
-        }
+      }
 
-        const { data: publicUrlData } = supabase.storage
+      const { data: publicUrlData } = supabase.storage
         .from('support-attachments')
         .getPublicUrl(filePath);
 
-      if (signedData?.signedUrl) {
-        urls.push(signedData.signedUrl);
-      } else {
-        const { data: pubData } = supabase.storage
-          .from('support-attachments')
-          .getPublicUrl(filePath);
-        if (pubData?.publicUrl) urls.push(pubData.publicUrl);
+      if (publicUrlData?.publicUrl) {
+        urls.push(publicUrlData.publicUrl);
       }
     }
 
